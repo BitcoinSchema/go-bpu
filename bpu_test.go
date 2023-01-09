@@ -1,0 +1,113 @@
+package bpu
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/bitcoinschema/go-bpu/test"
+	"github.com/stretchr/testify/assert"
+)
+
+var sampleTx, bitchatTx string
+
+func init() {
+	sampleTx = test.GetTestHex("./test/data/98a5f6ef18eaea188bdfdc048f89a48af82627a15a76fd53584975f28ab3cc39.hex")
+	bitchatTx = test.GetTestHex("./test/data/653947cee3268c26efdcc97ef4e775d990e49daf81ecd2555127bda22fe5a21f.hex")
+}
+
+var seperator = "|"
+var l = IncludeL
+var opReturn = uint8(106)
+var opFalse = uint8(0)
+var splitConfig = []SplitConfig{{
+	Token: &Token{
+		Op: &opReturn,
+	},
+	Include: &l,
+},
+	{
+		Token: &Token{
+			Op: &opFalse,
+		},
+		Include: &l,
+	},
+	{
+		Token: &Token{
+			S: &seperator,
+		},
+	},
+}
+
+func TestBpu(t *testing.T) {
+
+	t.Run("bpu.Parse", func(t *testing.T) {
+
+		bpuTx, err := Parse(ParseConfig{RawTxHex: sampleTx, SplitConfig: splitConfig})
+		if err != nil {
+			fmt.Println(err)
+		}
+		assert.Nil(t, err)
+		assert.NotNil(t, bpuTx)
+
+		// Inputs
+		assert.Equal(t, 1, len(bpuTx.In))
+		assert.NotNil(t, bpuTx.In[0].Tape)
+		assert.Equal(t, 1, len(bpuTx.In[0].Tape))
+		assert.NotNil(t, len(bpuTx.In[0].Tape[0].Cell))
+		assert.NotNil(t, bpuTx.In[0].Tape[0].Cell[0])
+		assert.Nil(t, bpuTx.In[0].Tape[0].Cell[0].Op)
+		assert.Equal(t, "MEUCIQC6inN+3xNzbLGYzO+Jf1fiQsO7byIsY38SBdgFDb0iOQIgBivsk7RvZJ9C+XFDia33fWyhkyEbiRI25i3k+I+a+6lB", *bpuTx.In[0].Tape[0].Cell[0].B)
+		assert.Equal(t, uint8(0), bpuTx.In[0].Tape[0].Cell[0].I)
+		assert.Equal(t, uint8(0), bpuTx.In[0].Tape[0].Cell[0].II)
+		assert.NotNil(t, bpuTx.In[0].E)
+		assert.NotNil(t, bpuTx.In[0].E.A)
+		assert.Equal(t, "1LC16EQVsqVYGeYTCrjvNf8j28zr4DwBuk", *bpuTx.In[0].E.A)
+		assert.Equal(t, "2b3067e50f92b7052571cd0d66c4e0071c1d79fc7248481980a454f5c6851e3a", *bpuTx.In[0].E.H)
+		assert.Equal(t, uint32(1), bpuTx.In[0].E.I)
+		assert.NotNil(t, bpuTx.Tx)
+		assert.Equal(t, "98a5f6ef18eaea188bdfdc048f89a48af82627a15a76fd53584975f28ab3cc39", bpuTx.Tx.H)
+
+		// Outputs
+		assert.Equal(t, 2, len(bpuTx.Out))
+		assert.Equal(t, 0, bpuTx.Out[0].I)
+		assert.NotNil(t, bpuTx.Out[0].Tape)
+		assert.Equal(t, 1, len(bpuTx.Out[0].Tape[0].Cell))
+		assert.NotNil(t, 3, len(bpuTx.Out[0].Tape))
+		assert.Equal(t, 1, len(bpuTx.Out[0].Tape))
+		assert.NotNil(t, len(bpuTx.Out[0].Tape[0].Cell))
+		assert.Equal(t, 1, len(bpuTx.Out[0].Tape[0].Cell))
+		assert.NotNil(t, bpuTx.Out[0].Tape[0].Cell[0])
+		assert.Equal(t, uint16(106), *bpuTx.Out[0].Tape[0].Cell[0].Op)
+		assert.Equal(t, "OP_RETURN", *bpuTx.Out[0].Tape[0].Cell[0].S)
+		assert.Equal(t, "1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT", bpuTx.Out[0].Tape[1].Cell[0].S)
+		assert.NotNil(t, bpuTx.Out[0].Tape[1].Cell[3].S)
+		assert.Equal(t, "0", *bpuTx.Out[0].Tape[1].Cell[3].S)
+		assert.NotNil(t, bpuTx.Out[0].Tape[1].Cell[3].B)
+		assert.Equal(t, "MA==", *bpuTx.Out[0].Tape[1].Cell[3].B)
+		assert.Equal(t, 4, bpuTx.Out[0].Tape[1].Cell[3].II)
+	})
+}
+
+func TestBpuBitchat(t *testing.T) {
+
+	t.Run("bpu.Parse bitchat", func(t *testing.T) {
+		bpuTx, err := Parse(ParseConfig{RawTxHex: sampleTx, SplitConfig: splitConfig})
+		if err != nil {
+			fmt.Println(err)
+		}
+		assert.Nil(t, err)
+
+		fmt.Println(fmt.Sprintf("BpuTx %+v", *bpuTx))
+		assert.NotNil(t, bpuTx)
+
+		assert.Equal(t, 1, len(bpuTx.In))
+		assert.Equal(t, 2, len(bpuTx.Out))
+
+		assert.NotNil(t, bpuTx.Out[0].Tape)
+		assert.NotNil(t, bpuTx.Out[0].XPut.Tape)
+		assert.Equal(t, 2, len(bpuTx.Out[0].Tape[0].Cell))
+	})
+
+}
+
+// TODO: Split tests
