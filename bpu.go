@@ -58,20 +58,32 @@ func (b *BpuTx) fromTx(config ParseConfig) (err error) {
 			if idx == 0 {
 				fmt.Println("oh snap", geneInput.PreviousTxScript)
 			}
-			if geneInput.PreviousTxScript != nil {
-				addresses, err := geneInput.PreviousTxScript.Addresses()
+			if geneInput.UnlockingScript != nil {
+				gInScript := *geneInput.UnlockingScript
+
+				// TODO: Remove this hack if libsv accepts this pr:
+				// https://github.com/libsv/go-bt/pull/133
+				// only a problem for input scripts
+				gInAsm, err := gInScript.ToASM()
 				if err != nil {
 					return err
 				}
-				if len(addresses) > 0 {
-					address = &addresses[0]
+				scriptParts := strings.Split(gInAsm, " ")
+
+				if len(scriptParts) == 2 {
+					addy, err := bscript.NewAddressFromPublicKeyString(scriptParts[1], true)
+					if err != nil {
+						return err
+					}
+					address = &addy.AddressString
 				}
 			}
-			prevTxid := string(geneInput.PreviousTxID())
+			prevTxid := hex.EncodeToString(geneInput.PreviousTxID())
 			inXput.E = E{
 				A: address,
 				V: &geneInput.PreviousTxSatoshis,
 				H: &prevTxid,
+				I: uint32(geneInput.PreviousTxOutIndex),
 			}
 			inputs = append(inputs, Input{
 				XPut: inXput,
