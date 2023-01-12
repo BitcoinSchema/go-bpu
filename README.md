@@ -69,8 +69,8 @@ var splitTransform Transform = func(o Cell, c string) (to *Cell, e error) {
 }
 ```
 
-# Usage details
-See the [Typescript library](https://github.com/rohenaz/bpu-ts) for more examples of split configuration options, transformation, and a look at the output.
+# More Usage details
+See the [Typescript library](https://github.com/rohenaz/bpu-ts) README for more examples of split configuration options, transformation, and a look at the output.
 
 # Errata
 The original BPU library used bsv (javascript) v1.5 to determine if a script chunk was a valid opcode. At the time, the bsv library supported a limited number of OP codes (inherited from limitations uimposed by Bitcoin core). In this version all opcodes are recognized which surfaces a new issue where fields previously available would be missing if the data is now recognized as an opcode. 
