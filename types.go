@@ -44,7 +44,7 @@ type Cell struct {
 	LS  *string `json:"ls,omitempty" bson:"ls,omitempty"`
 	I   uint8   `json:"i" bson:"i"`
 	II  uint8   `json:"ii" bson:"ii"`
-	Op  *uint16 `json:"op,omitempty" bson:"op,omitempty"`
+	Op  *uint8  `json:"op,omitempty" bson:"op,omitempty"`
 	Ops *string `json:"ops,omitempty" bson:"ops,omitempty"`
 }
 

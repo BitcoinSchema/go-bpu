@@ -3,11 +3,9 @@ package bpu
 import (
 	_ "embed"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"strconv"
-	"strings"
+	"unicode"
 
 	"github.com/bitcoinschema/go-bpu/util"
 	"github.com/libsv/go-bt/v2"
@@ -55,27 +53,25 @@ func (b *BpuTx) fromTx(config ParseConfig) (err error) {
 		for idx, inXput := range inXputs {
 			geneInput := gene.Inputs[idx]
 			var address *string
-			if idx == 0 {
-				fmt.Println("oh snap", geneInput.PreviousTxScript)
-			}
 			if geneInput.UnlockingScript != nil {
 				gInScript := *geneInput.UnlockingScript
 
 				// TODO: Remove this hack if libsv accepts this pr:
 				// https://github.com/libsv/go-bt/pull/133
 				// only a problem for input scripts
-				gInAsm, err := gInScript.ToASM()
+
+				parts, err := bscript.DecodeParts(gInScript)
 				if err != nil {
 					return err
 				}
-				scriptParts := strings.Split(gInAsm, " ")
 
-				if len(scriptParts) == 2 {
-					addy, err := bscript.NewAddressFromPublicKeyString(scriptParts[1], true)
+				if len(parts) == 2 {
+					partHex := hex.EncodeToString(parts[1])
+					a, err := bscript.NewAddressFromPublicKeyString(partHex, true)
 					if err != nil {
 						return err
 					}
-					address = &addy.AddressString
+					address = &a.AddressString
 				}
 			}
 			prevTxid := hex.EncodeToString(geneInput.PreviousTxID())
@@ -165,13 +161,12 @@ func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (xput
 
 func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8) error {
 	if script != nil {
-		asm, err := script.ToASM()
+		parts, err := bscript.DecodeParts(*script)
 		if err != nil {
 			return err
 		}
-		chunks := strings.Split(asm, " ")
-		for cIdx, chunk := range chunks {
-			_, err := x.processChunk(chunk, config, uint8(cIdx), idx)
+		for cIdx, part := range parts {
+			_, err := x.processChunk(part, config, uint8(cIdx), idx)
 			if err != nil {
 				return err
 			}
@@ -181,110 +176,65 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 	return nil
 }
 
-func (x *XPut) processChunk(chunk string, o ParseConfig, chunkIndex uint8, idx uint8) (isSplitter bool, err error) {
+func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx uint8) (isSplitter bool, err error) {
 
 	if x.Tape == nil {
 		x.Tape = make([]Tape, 0)
 	}
 	isSplitter = false
-	var op uint16
+	var op uint8
 	var ops string
 	var isOpType = false
 	var splitter *IncludeType
-	var bytes []byte
+
 	var h *string
-	var s *string = nil
+	var s *string
 	var b *string
 
 	// Is chunk an opcode?
 	var opByte byte
+	var opStr *string
 
-	// Some OPCODES do not come through in asm. Get decimal value. If its < 255
-	if opB, ok := util.OpCodeStrings[chunk]; ok {
-		isOpType = true
-		opByte = opB
-	} else if len(chunk) <= 4 {
-		// these will be in decimal in asm for some reason
-
-		dec, err := strconv.ParseUint(chunk, 10, 10)
-		if err != nil {
-			fmt.Println("Failed to parse dec", chunk)
-			return isSplitter, err
-		}
-
-		tempOpByte := make([]byte, 8)
-		binary.LittleEndian.PutUint64(tempOpByte, dec)
-		opByte = tempOpByte[0]
-		str := string(opByte)
-		s = &str
-
-		if chunk, ok := util.OpCodeValues[opByte]; ok {
-			fmt.Println("Converted hex to opcode", chunk)
+	if len(chunk) == 1 {
+		opByte = chunk[0]
+		if opCodeStr, ok := util.OpCodeValues[opByte]; ok {
 			isOpType = true
+			opStr = &opCodeStr
+			op = opByte
+			ops = *opStr
 		}
-
 	}
 
-	// for some reason the | is coming through as S "124" which is the hex value not string value
-	// if this was not a recognizable opcode but still came through asm with 4 digits or less its been
-	// treated like an opcode and converted into decimal in the asm representation.
-	// we convert to decimal and look it up
-	// if len(chunk) <= 4 {
-	// 	dec, err := strconv.ParseUint(chunk, 10, 10)
-	// 	if err != nil {
-	// 		fmt.Println("Failed to parse dec", chunk)
-	// 		return isSplitter, err
-	// 	}
-	// 	isOpType = true
-	// 	op = uint16(dec)
-	// 	if chunk, ok := util.OpCodeValues[bytes[0]]; ok {
-	// 		fmt.Println("Converted hex to opcode", chunk)
-	// 		isOpType = true
-	// 		opByte = bytes[0]
-	// 	}
-	// 	ops = util.OpCodeValues[uint8(op)]
-	// 	s = string(uint8(op))
-	// 	// if len(chunk)%2 != 0 {
-	// 	// 	chunk = fmt.Sprintf("%s0", chunk)
-	// 	// }
-	// }
+	hexStr := hex.EncodeToString(chunk)
 
-	if isOpType {
-		bytes = []byte{opByte}
-		hexStr := hex.EncodeToString(bytes)
-		h = &hexStr
+	// Check if the byte is a printable ASCII character
+	if !isOpType || unicode.IsPrint(rune(opByte)) {
+		str := string(chunk)
+		s = &str
 
-		op = uint16(opByte)
-		ops = chunk
-	} else {
-
-		bytes, err = hex.DecodeString(chunk)
-
-		if err != nil {
-			fmt.Println("Failed to decode hex", chunk)
-			return isSplitter, err
-		}
-		b64 := base64.StdEncoding.EncodeToString(bytes)
-		h = &chunk
-		if s == nil {
-			str := string(bytes)
-			s = &str
-		}
+		b64 := base64.StdEncoding.EncodeToString(chunk)
 		b = &b64
+
+		h = &hexStr
 	}
 
 	// Split config provided
 	if o.SplitConfig != nil {
 		for _, setting := range o.SplitConfig {
+			if opStr != nil {
+				// Check if this is a manual seperator that happens to also be an opcode
+				var splitOpStrPtr *string
+				if splitOpByte, ok := util.OpCodeStrings[*opStr]; ok {
+					splitOpStr := string([]byte{splitOpByte})
+					splitOpStrPtr = &splitOpStr
+				}
+				// or an actual op splitter
 
-			if opByte, ok := util.OpCodeStrings[chunk]; ok {
-				opCodeNum := uint8(opByte)
-				if setting.Token != nil && (setting.Token.Op != nil && *setting.Token.Op == opCodeNum) || (setting.Token.Ops != nil && *setting.Token.Ops == chunk) {
+				if setting.Token != nil && (setting.Token.Op != nil && *setting.Token.Op == op) || (setting.Token.Ops != nil && setting.Token.Ops == opStr) || (setting.Token.S != nil && splitOpStrPtr != nil && *setting.Token.S == *splitOpStrPtr) {
 					splitter = setting.Include
 					isSplitter = true
 				}
 			} else {
-
 				// Script type
 				if setting.Token != nil && (setting.Token.S != nil && *setting.Token.S == *s) || (setting.Token.B != nil && *setting.Token.B == *b) {
 					splitter = setting.Include
@@ -304,14 +254,18 @@ func (x *XPut) processChunk(chunk string, o ParseConfig, chunkIndex uint8, idx u
 			cell = make([]Cell, 0)
 			cell_i = 0
 			tape_i++
+
 		} else if *splitter == IncludeL {
 			if isOpType {
 				item = t(Cell{
 					Op:  &op,
 					Ops: &ops,
+					S:   s,
+					H:   h,
+					B:   b,
 					I:   cell_i,
 					II:  chunkIndex,
-				}, chunk)
+				}, hexStr)
 			} else {
 				item = t(Cell{
 					S:  s,
@@ -319,7 +273,7 @@ func (x *XPut) processChunk(chunk string, o ParseConfig, chunkIndex uint8, idx u
 					H:  h,
 					I:  cell_i,
 					II: chunkIndex,
-				}, chunk)
+				}, hexStr)
 			}
 
 			cell = append(cell, item)
@@ -334,16 +288,19 @@ func (x *XPut) processChunk(chunk string, o ParseConfig, chunkIndex uint8, idx u
 			// TODO: Make sure this doesnt kill cell above or if we need to do some kinda copy
 			// TODO: This was commented out but might be needed
 			cell = make([]Cell, 0)
-		} else if *splitter == IncludeR {
+		} else if *splitter == IncludeC {
 			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
 			x.Tape = outTapes
 			tape_i++
 			item := t(Cell{
 				Op:  &op,
 				Ops: &ops,
+				S:   s,
+				H:   h,
+				B:   b,
 				I:   cell_i,
 				II:  chunkIndex,
-			}, chunk)
+			}, hexStr)
 
 			cell = []Cell{item}
 			cell_i = 1
@@ -355,9 +312,12 @@ func (x *XPut) processChunk(chunk string, o ParseConfig, chunkIndex uint8, idx u
 			item := t(Cell{
 				Op:  &op,
 				Ops: &ops,
+				S:   s,
+				H:   h,
+				B:   b,
 				I:   cell_i,
 				II:  chunkIndex,
-			}, chunk)
+			}, hexStr)
 
 			cell = []Cell{item}
 			outTapes = append(outTapes, Tape{Cell: cell, I: tape_i})
@@ -374,13 +334,15 @@ func (x *XPut) processChunk(chunk string, o ParseConfig, chunkIndex uint8, idx u
 			var item Cell
 			if isOpType {
 				item = t(
-					Cell{Op: &op, Ops: &ops, II: chunkIndex, I: cell_i},
-					chunk,
+					Cell{Op: &op, Ops: &ops, S: s,
+						H: h,
+						B: b, II: chunkIndex, I: cell_i},
+					hexStr,
 				)
 			} else {
 				item = t(
 					Cell{B: b, S: s, H: h, II: chunkIndex, I: cell_i},
-					chunk,
+					hexStr,
 				)
 			}
 

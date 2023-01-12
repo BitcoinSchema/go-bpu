@@ -3,6 +3,7 @@ package bpu
 import (
 	"fmt"
 	"testing"
+	"unicode"
 
 	"github.com/bitcoinschema/go-bpu/test"
 	"github.com/stretchr/testify/assert"
@@ -75,17 +76,20 @@ func TestBpu(t *testing.T) {
 		assert.NotNil(t, bpuTx.Out[0].Tape[0].Cell)
 		assert.Equal(t, 1, len(bpuTx.Out[0].Tape[0].Cell))
 		assert.NotNil(t, bpuTx.Out[0].Tape[0].Cell[0])
-		assert.Equal(t, uint16(106), *bpuTx.Out[0].Tape[0].Cell[0].Op)
+		assert.Equal(t, uint8(106), *bpuTx.Out[0].Tape[0].Cell[0].Op)
 		assert.Equal(t, "OP_RETURN", *bpuTx.Out[0].Tape[0].Cell[0].Ops)
 		assert.Equal(t, "1BAPSuaPnfGnSBM3GLV9yhxUdYe4vGbdMT", *bpuTx.Out[0].Tape[1].Cell[0].S)
 		assert.NotNil(t, bpuTx.Out[0].Tape[1].Cell[3].S)
-		// TODO: My asm fix is messing up small pushdatas like this one
-		// assert.Equal(t, "0", *bpuTx.Out[0].Tape[1].Cell[3].S)
 		assert.NotNil(t, bpuTx.Out[0].Tape[1].Cell[3].B)
 		assert.Equal(t, "MA==", *bpuTx.Out[0].Tape[1].Cell[3].B)
-		assert.Equal(t, 4, bpuTx.Out[0].Tape[1].Cell[3].II)
-		assert.Equal(t, 3, bpuTx.Out[0].Tape[1].Cell[3].I)
+		assert.Equal(t, uint8(4), bpuTx.Out[0].Tape[1].Cell[3].II)
+		assert.Equal(t, uint8(3), bpuTx.Out[0].Tape[1].Cell[3].I)
 	})
+}
+
+func TestUnicode(t *testing.T) {
+	char := "供"
+	assert.Equal(t, true, unicode.IsPrint(rune(char[0])))
 }
 
 func TestBpuBitchat(t *testing.T) {
