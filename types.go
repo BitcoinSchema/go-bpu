@@ -8,7 +8,7 @@ const (
 	IncludeC IncludeType = "c"
 )
 
-type Transform func(o Cell, c string) Cell
+type Transform func(o Cell, c string) (to *Cell, err error)
 
 type Token struct {
 	S   *string `json:"s" bson:"s"`

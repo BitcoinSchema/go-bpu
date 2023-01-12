@@ -1,6 +1,7 @@
 package bpu
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 	"unicode"
@@ -20,12 +21,14 @@ var seperator = "|"
 var l = IncludeL
 var opReturn = uint8(106)
 var opFalse = uint8(0)
-var splitConfig = []SplitConfig{{
-	Token: &Token{
-		Op: &opReturn,
+
+var splitConfig = []SplitConfig{
+	{
+		Token: &Token{
+			Op: &opReturn,
+		},
+		Include: &l,
 	},
-	Include: &l,
-},
 	{
 		Token: &Token{
 			Op: &opFalse,
@@ -37,6 +40,37 @@ var splitConfig = []SplitConfig{{
 			S: &seperator,
 		},
 	},
+}
+
+var splitTransform Transform = func(o Cell, c string) (to *Cell, e error) {
+	// if the buffer is larger than 512 bytes,
+	// replace the key with "l" prepended attribute
+	to = &o
+	bytes, err := hex.DecodeString(c)
+	if err != nil {
+		return nil, err
+	}
+	if len(bytes) > 512 {
+		to.LS = to.S
+		to.LB = to.B
+		to.S = nil
+		to.B = nil
+	}
+	return to, nil
+}
+
+func TestTransform(t *testing.T) {
+	t.Run("bpu.Transform", func(t *testing.T) {
+		bpuTx, err := Parse(ParseConfig{RawTxHex: sampleTx, SplitConfig: splitConfig, Transform: &splitTransform})
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		assert.Nil(t, err)
+		assert.NotNil(t, bpuTx)
+
+		// TODO: Test the transform actually worked with a large tx
+	})
 }
 
 func TestBpu(t *testing.T) {

@@ -26,8 +26,8 @@ func Parse(config ParseConfig) (bpuTx *BpuTx, err error) {
 	return bpuTx, nil
 }
 
-var defaultTransform Transform = func(r Cell, c string) Cell {
-	return r
+var defaultTransform Transform = func(r Cell, c string) (to *Cell, err error) {
+	return &r, nil
 }
 
 // convert a raw tx to a bpu tx
@@ -44,9 +44,6 @@ func (b *BpuTx) fromTx(config ParseConfig) (err error) {
 		if err != nil {
 			return err
 		}
-
-		// fmt.Println(fmt.Sprintf("%d inputs and %d outputs", len(inXputs), len(outXputs)))
-		// fmt.Println(fmt.Sprintf("%d inputs and %d outputs", len(gene.Inputs), len(gene.Outputs)))
 
 		// convert all of the xputs to inputs
 		var inputs []Input
@@ -190,11 +187,11 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 	var h *string
 	var s *string
 	var b *string
+	hexStr := hex.EncodeToString(chunk)
 
-	// Is chunk an opcode?
+	// Check for valid opcodes
 	var opByte byte
 	var opStr *string
-
 	if len(chunk) == 1 {
 		opByte = chunk[0]
 		if opCodeStr, ok := util.OpCodeValues[opByte]; ok {
@@ -205,16 +202,12 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 		}
 	}
 
-	hexStr := hex.EncodeToString(chunk)
-
 	// Check if the byte is a printable ASCII character
 	if !isOpType || unicode.IsPrint(rune(opByte)) {
 		str := string(chunk)
 		s = &str
-
 		b64 := base64.StdEncoding.EncodeToString(chunk)
 		b = &b64
-
 		h = &hexStr
 	}
 
@@ -247,7 +240,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 	var cell []Cell
 	if isSplitter && o.Transform != nil {
 		t := *o.Transform
-		var item Cell
+		var item *Cell
 
 		if splitter == nil {
 			// Don't include the seperator by default, just make a new tape and reset cell
@@ -257,7 +250,8 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 
 		} else if *splitter == IncludeL {
 			if isOpType {
-				item = t(Cell{
+
+				item, err = t(Cell{
 					Op:  &op,
 					Ops: &ops,
 					S:   s,
@@ -267,7 +261,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 					II:  chunkIndex,
 				}, hexStr)
 			} else {
-				item = t(Cell{
+				item, err = t(Cell{
 					S:  s,
 					B:  b,
 					H:  h,
@@ -275,8 +269,11 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 					II: chunkIndex,
 				}, hexStr)
 			}
+			if err != nil {
+				return false, err
+			}
 
-			cell = append(cell, item)
+			cell = append(cell, *item)
 			cell_i++
 
 			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
@@ -292,7 +289,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
 			x.Tape = outTapes
 			tape_i++
-			item := t(Cell{
+			item, err := t(Cell{
 				Op:  &op,
 				Ops: &ops,
 				S:   s,
@@ -301,15 +298,18 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 				I:   cell_i,
 				II:  chunkIndex,
 			}, hexStr)
+			if err != nil {
+				return false, err
+			}
 
-			cell = []Cell{item}
+			cell = []Cell{*item}
 			cell_i = 1
 
 		} else if *splitter == IncludeR {
 			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
 			x.Tape = outTapes
 			tape_i++
-			item := t(Cell{
+			item, err := t(Cell{
 				Op:  &op,
 				Ops: &ops,
 				S:   s,
@@ -318,8 +318,11 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 				I:   cell_i,
 				II:  chunkIndex,
 			}, hexStr)
+			if err != nil {
+				return false, err
+			}
 
-			cell = []Cell{item}
+			cell = []Cell{*item}
 			outTapes = append(outTapes, Tape{Cell: cell, I: tape_i})
 			x.Tape = outTapes
 
@@ -331,25 +334,29 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 		if o.Transform != nil {
 			t := *o.Transform
 
-			var item Cell
+			var item *Cell
 			if isOpType {
-				item = t(
+				item, err = t(
 					Cell{Op: &op, Ops: &ops, S: s,
 						H: h,
 						B: b, II: chunkIndex, I: cell_i},
 					hexStr,
 				)
 			} else {
-				item = t(
+				item, err = t(
 					Cell{B: b, S: s, H: h, II: chunkIndex, I: cell_i},
 					hexStr,
 				)
 			}
 
+			if err != nil {
+				return false, err
+			}
+
 			cell_i++
 			if len(x.Tape) == 0 {
 				// create a new tape including the cell
-				cell = append(cell, item)
+				cell = append(cell, *item)
 				outTape := append(x.Tape, Tape{Cell: cell, I: cell_i})
 				x.Tape = outTape
 			} else {
@@ -360,7 +367,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 						I: tape_i,
 					})
 				}
-				cell = append(x.Tape[tape_i].Cell, item)
+				cell = append(x.Tape[tape_i].Cell, *item)
 
 				// add the cell to the tape
 				x.Tape[tape_i].Cell = cell

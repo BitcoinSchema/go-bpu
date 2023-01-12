@@ -1,6 +1,6 @@
 module github.com/bitcoinschema/go-bpu
 
-go 1.19
+go 1.17
 
 require github.com/libsv/go-bt/v2 v2.1.1
 
