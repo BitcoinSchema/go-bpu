@@ -129,7 +129,7 @@ func TestUnicode(t *testing.T) {
 func TestBpuBitchat(t *testing.T) {
 
 	t.Run("bpu.Parse bitchat", func(t *testing.T) {
-		bpuTx, err := Parse(ParseConfig{RawTxHex: sampleTx, SplitConfig: splitConfig})
+		bpuTx, err := Parse(ParseConfig{RawTxHex: bitchatTx, SplitConfig: splitConfig})
 		if err != nil {
 			fmt.Println(err)
 		}

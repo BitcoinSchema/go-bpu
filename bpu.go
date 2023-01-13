@@ -162,13 +162,13 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 		if err != nil {
 			return err
 		}
+
 		for cIdx, part := range parts {
 			_, err := x.processChunk(part, config, uint8(cIdx), idx)
 			if err != nil {
 				return err
 			}
 		}
-
 	}
 	return nil
 }
@@ -179,8 +179,8 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 		x.Tape = make([]Tape, 0)
 	}
 	isSplitter = false
-	var op uint8
-	var ops string
+	var op *uint8
+	var ops *string
 	var isOpType = false
 	var splitter *IncludeType
 
@@ -191,14 +191,12 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 
 	// Check for valid opcodes
 	var opByte byte
-	var opStr *string
 	if len(chunk) == 1 {
 		opByte = chunk[0]
 		if opCodeStr, ok := util.OpCodeValues[opByte]; ok {
 			isOpType = true
-			opStr = &opCodeStr
-			op = opByte
-			ops = *opStr
+			op = &opByte
+			ops = &opCodeStr
 		}
 	}
 
@@ -211,25 +209,28 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 		h = &hexStr
 	}
 
+	if op != nil && *op == 0 {
+		fmt.Println("debug me")
+	}
 	// Split config provided
 	if o.SplitConfig != nil {
 		for _, setting := range o.SplitConfig {
-			if opStr != nil {
+			if ops != nil {
 				// Check if this is a manual seperator that happens to also be an opcode
 				var splitOpStrPtr *string
-				if splitOpByte, ok := util.OpCodeStrings[*opStr]; ok {
+				if splitOpByte, ok := util.OpCodeStrings[*ops]; ok {
 					splitOpStr := string([]byte{splitOpByte})
 					splitOpStrPtr = &splitOpStr
 				}
 				// or an actual op splitter
 
-				if setting.Token != nil && (setting.Token.Op != nil && *setting.Token.Op == op) || (setting.Token.Ops != nil && setting.Token.Ops == opStr) || (setting.Token.S != nil && splitOpStrPtr != nil && *setting.Token.S == *splitOpStrPtr) {
+				if setting.Token != nil && (setting.Token.Op != nil && *setting.Token.Op == *op) || (setting.Token.Ops != nil && setting.Token.Ops == ops) || (setting.Token.S != nil && splitOpStrPtr != nil && *setting.Token.S == *splitOpStrPtr) {
 					splitter = setting.Include
 					isSplitter = true
 				}
 			} else {
 				// Script type
-				if setting.Token != nil && (setting.Token.S != nil && *setting.Token.S == *s) || (setting.Token.B != nil && *setting.Token.B == *b) {
+				if setting.Token != nil && (s != nil && setting.Token.S != nil && *setting.Token.S == *s) || (b != nil && setting.Token.B != nil && *setting.Token.B == *b) {
 					splitter = setting.Include
 					isSplitter = true
 				}
@@ -252,8 +253,8 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 			if isOpType {
 
 				item, err = t(Cell{
-					Op:  &op,
-					Ops: &ops,
+					Op:  op,
+					Ops: ops,
 					S:   s,
 					H:   h,
 					B:   b,
@@ -276,22 +277,25 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 			cell = append(cell, *item)
 			cell_i++
 
-			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
+			// if theres an existing tape, add item to it...
+			if len(x.Tape) > 0 {
+				x.Tape[len(x.Tape)-1].Cell = append(x.Tape[len(x.Tape)-1].Cell, cell...)
+			} else {
+				// otherwise make a new tape
+				outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
+				x.Tape = outTapes
+				tape_i++
+			}
 
-			// x.Tape[tape_i].Cell[cell_i] = item
-			x.Tape = outTapes
-			tape_i++
 			cell_i = 0
-			// TODO: Make sure this doesnt kill cell above or if we need to do some kinda copy
-			// TODO: This was commented out but might be needed
 			cell = make([]Cell, 0)
 		} else if *splitter == IncludeC {
 			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
 			x.Tape = outTapes
 			tape_i++
 			item, err := t(Cell{
-				Op:  &op,
-				Ops: &ops,
+				Op:  op,
+				Ops: ops,
 				S:   s,
 				H:   h,
 				B:   b,
@@ -310,8 +314,8 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 			x.Tape = outTapes
 			tape_i++
 			item, err := t(Cell{
-				Op:  &op,
-				Ops: &ops,
+				Op:  op,
+				Ops: ops,
 				S:   s,
 				H:   h,
 				B:   b,
@@ -337,7 +341,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 			var item *Cell
 			if isOpType {
 				item, err = t(
-					Cell{Op: &op, Ops: &ops, S: s,
+					Cell{Op: op, Ops: ops, S: s,
 						H: h,
 						B: b, II: chunkIndex, I: cell_i},
 					hexStr,
