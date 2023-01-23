@@ -68,7 +68,6 @@ func TestTransform(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.NotNil(t, bpuTx)
-
 		// TODO: Test the transform actually worked with a large tx
 	})
 }
@@ -145,7 +144,6 @@ func TestBpuBitchat(t *testing.T) {
 		assert.NotNil(t, bpuTx.Out[0].XPut.Tape)
 		assert.Equal(t, 2, len(bpuTx.Out[0].Tape[0].Cell))
 	})
-
 }
 
 // TODO: Split tests

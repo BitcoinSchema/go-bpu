@@ -106,7 +106,6 @@ func (b *BpuTx) fromTx(config ParseConfig) (err error) {
 			outputs = append(outputs, Output{
 				XPut: outXput,
 			})
-			fmt.Println("Testing", *outputs[0].Tape[0].Cell[0].Ops)
 		}
 
 		txid := gene.TxID()
@@ -209,9 +208,6 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 		h = &hexStr
 	}
 
-	if op != nil && *op == 0 {
-		fmt.Println("debug me")
-	}
 	// Split config provided
 	if o.SplitConfig != nil {
 		for _, setting := range o.SplitConfig {
