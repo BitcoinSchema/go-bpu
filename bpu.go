@@ -21,7 +21,6 @@ func Parse(config ParseConfig) (bpuTx *BpuTx, err error) {
 	bpuTx = new(BpuTx)
 	err = bpuTx.fromTx(config)
 	if err != nil {
-		fmt.Println("Failed tx to bpu", err)
 		return nil, err
 	}
 	return bpuTx, nil
@@ -33,94 +32,93 @@ var defaultTransform Transform = func(r Cell, c string) (to *Cell, err error) {
 
 // convert a raw tx to a bpu tx
 func (b *BpuTx) fromTx(config ParseConfig) (err error) {
-	if len(config.RawTxHex) > 0 {
-		// make sure raw Tx is a valid hex
+	if len(config.RawTxHex) == 0 {
+		return errors.New("raw tx must be set")
+	}
 
-		gene, err := bt.NewTxFromString(config.RawTxHex)
-		if err != nil {
-			return fmt.Errorf("failed to parse tx: %e", err)
-		}
+	gene, err := bt.NewTxFromString(config.RawTxHex)
+	if err != nil {
+		return fmt.Errorf("failed to parse tx: %e", err)
+	}
 
-		var inXputs []XPut
+	var inXputs []XPut
 
-		inXputs, outXputs, err := collect(config, gene.Inputs, gene.Outputs)
-		if err != nil {
-			return err
-		}
+	inXputs, outXputs, err := collect(config, gene.Inputs, gene.Outputs)
+	if err != nil {
+		return err
+	}
 
-		// convert all of the xputs to inputs
-		var inputs []Input
-		for idx, inXput := range inXputs {
-			geneInput := gene.Inputs[idx]
-			var address *string
-			if geneInput.UnlockingScript != nil {
-				gInScript := *geneInput.UnlockingScript
+	// convert all of the xputs to inputs
+	var inputs []Input
+	for idx, inXput := range inXputs {
+		geneInput := gene.Inputs[idx]
+		var address *string
+		if geneInput.UnlockingScript != nil {
+			gInScript := *geneInput.UnlockingScript
 
-				// TODO: Remove this hack if libsv accepts this pr:
-				// https://github.com/libsv/go-bt/pull/133
-				// only a problem for input scripts
+			// TODO: Remove this hack if libsv accepts this pr:
+			// https://github.com/libsv/go-bt/pull/133
+			// only a problem for input scripts
 
-				parts, err := bscript.DecodeParts(gInScript)
-				if err != nil {
-					return err
-				}
-
-				if len(parts) == 2 {
-					partHex := hex.EncodeToString(parts[1])
-					a, err := bscript.NewAddressFromPublicKeyString(partHex, true)
-					if err != nil {
-						return err
-					}
-					address = &a.AddressString
-				}
-			}
-			prevTxid := hex.EncodeToString(geneInput.PreviousTxID())
-			inXput.E = E{
-				A: address,
-				V: &geneInput.PreviousTxSatoshis,
-				H: &prevTxid,
-				I: uint32(geneInput.PreviousTxOutIndex),
-			}
-			inputs = append(inputs, Input{
-				XPut: inXput,
-				Seq:  gene.Inputs[idx].SequenceNumber,
-			})
-
-		}
-		var outputs []Output
-		for idx, outXput := range outXputs {
-			geneOutput := gene.Outputs[idx]
-			var address *string
-
-			addresses, err := geneOutput.LockingScript.Addresses()
+			parts, err := bscript.DecodeParts(gInScript)
 			if err != nil {
 				return err
 			}
-			if len(addresses) > 0 {
-				address = &addresses[0]
-			}
 
-			outXput.E = E{
-				A: address,
-				V: &geneOutput.Satoshis,
-				I: uint32(idx),
-				H: nil,
+			if len(parts) == 2 {
+				partHex := hex.EncodeToString(parts[1])
+				a, err := bscript.NewAddressFromPublicKeyString(partHex, true)
+				if err != nil {
+					return err
+				}
+				address = &a.AddressString
 			}
-			outputs = append(outputs, Output{
-				XPut: outXput,
-			})
 		}
+		prevTxid := hex.EncodeToString(geneInput.PreviousTxID())
+		inXput.E = E{
+			A: address,
+			V: &geneInput.PreviousTxSatoshis,
+			H: &prevTxid,
+			I: uint32(geneInput.PreviousTxOutIndex),
+		}
+		inputs = append(inputs, Input{
+			XPut: inXput,
+			Seq:  gene.Inputs[idx].SequenceNumber,
+		})
 
-		txid := gene.TxID()
-		b.Tx = TxInfo{
-			H: txid,
-		}
-		b.In = inputs
-		b.Out = outputs
-		b.Lock = gene.LockTime
-	} else {
-		return errors.New("raw tx must be set")
 	}
+	var outputs []Output
+	for idx, outXput := range outXputs {
+		geneOutput := gene.Outputs[idx]
+		var address *string
+
+		addresses, err := geneOutput.LockingScript.Addresses()
+		if err != nil {
+			return err
+		}
+		if len(addresses) > 0 {
+			address = &addresses[0]
+		}
+
+		outXput.E = E{
+			A: address,
+			V: &geneOutput.Satoshis,
+			I: uint32(idx),
+			H: nil,
+		}
+		outputs = append(outputs, Output{
+			XPut: outXput,
+		})
+	}
+
+	txid := gene.TxID()
+	b.Tx = TxInfo{
+		H: txid,
+	}
+	b.In = inputs
+	b.Out = outputs
+	b.Lock = gene.LockTime
+
 	return
 }
 
