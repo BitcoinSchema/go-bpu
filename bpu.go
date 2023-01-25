@@ -4,7 +4,9 @@ import (
 	_ "embed"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"strconv"
 	"unicode"
 
 	"github.com/bitcoinschema/go-bpu/util"
@@ -33,9 +35,16 @@ var defaultTransform Transform = func(r Cell, c string) (to *Cell, err error) {
 // convert a raw tx to a bpu tx
 func (b *BpuTx) fromTx(config ParseConfig) (err error) {
 	if len(config.RawTxHex) > 0 {
+		// make sure raw Tx is a valid hex
+
+		_, err := strconv.ParseInt(config.RawTxHex, 16, 64)
+		if err != nil {
+			return errors.New("raw tx is not a valid hexadecimal string")
+		}
+
 		gene, err := bt.NewTxFromString(config.RawTxHex)
 		if err != nil {
-			return fmt.Errorf("Failed to parse tx: %e", err)
+			return fmt.Errorf("failed to parse tx: %e", err)
 		}
 
 		var inXputs []XPut
@@ -115,6 +124,8 @@ func (b *BpuTx) fromTx(config ParseConfig) (err error) {
 		b.In = inputs
 		b.Out = outputs
 		b.Lock = gene.LockTime
+	} else {
+		return errors.New("raw tx must be set")
 	}
 	return
 }
