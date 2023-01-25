@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"strconv"
 	"unicode"
 
 	"github.com/bitcoinschema/go-bpu/util"
@@ -36,11 +35,6 @@ var defaultTransform Transform = func(r Cell, c string) (to *Cell, err error) {
 func (b *BpuTx) fromTx(config ParseConfig) (err error) {
 	if len(config.RawTxHex) > 0 {
 		// make sure raw Tx is a valid hex
-
-		_, err := strconv.ParseInt(config.RawTxHex, 16, 64)
-		if err != nil {
-			return errors.New("raw tx is not a valid hexadecimal string")
-		}
 
 		gene, err := bt.NewTxFromString(config.RawTxHex)
 		if err != nil {
