@@ -19,6 +19,7 @@ type Token struct {
 type SplitConfig struct {
 	Token   *Token       `json:"token,omitempty" bson:"token,omitempty"`
 	Include *IncludeType `json:"include,omitempty" bson:"include,omitempty"`
+	Require *uint8       `json:"require,omitempty" bson:"require,omitempty"`
 }
 
 type ParseConfig struct {

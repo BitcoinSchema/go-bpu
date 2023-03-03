@@ -15,6 +15,7 @@ There is also a [Typescript version](https://github.con/rohenaz/bpu-ts) which do
 # Usage
 
 ## Split Config
+
 ```go
 var seperator = "|"
 var l = bpu.IncludeL
@@ -38,6 +39,7 @@ var splitConfig = []SplitConfig{
 		Token: &Token{
 			S: &seperator,
 		},
+    Require: &opFalse,
 	},
 }
 
@@ -48,6 +50,7 @@ if err != nil {
 ```
 
 ## Transform Function
+
 You can pass an optional Transform function to bpu.Parse. Function should look something like this:
 
 ```go
@@ -70,9 +73,11 @@ var splitTransform Transform = func(o Cell, c string) (to *Cell, e error) {
 ```
 
 # More Usage details
+
 See the [Typescript library](https://github.com/rohenaz/bpu-ts) README for more examples of split configuration options, transformation, and a look at the output.
 
 # Errata
-The original BPU library used bsv (javascript) v1.5 to determine if a script chunk was a valid opcode. At the time, the bsv library supported a limited number of OP codes (inherited from limitations uimposed by Bitcoin core). In this version all opcodes are recognized which surfaces a new issue where fields previously available would be missing if the data is now recognized as an opcode. 
+
+The original BPU library used bsv (javascript) v1.5 to determine if a script chunk was a valid opcode. At the time, the bsv library supported a limited number of OP codes (inherited from limitations uimposed by Bitcoin core). In this version all opcodes are recognized which surfaces a new issue where fields previously available would be missing if the data is now recognized as an opcode.
 
 Previously, BPU would omit the op and ops fields for non opcode data, while recognized opcodes would omit the s, b and h fields. To solve the issue of missing fields that happen to be opcodes, all keys are included if the recognized pushdata is also in the Printable ASCII range.

@@ -165,8 +165,28 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 			return err
 		}
 
+		var requireMet = false
+		var reqOmitted = true
+		var splitterRequirementMet bool
 		for cIdx, part := range parts {
-			_, err := x.processChunk(part, config, uint8(cIdx), idx)
+			for _, req := range config.SplitConfig {
+				if req.Require != nil {
+					reqOmitted = false
+
+					// Look through previous parts to see if the required token is found
+					chunksToCheck := parts[cIdx:]
+
+					for _, c := range chunksToCheck {
+						if len(c) == 1 && c[0] == *req.Require {
+							requireMet = true
+						}
+					}
+				}
+			}
+
+			splitterRequirementMet = reqOmitted || requireMet
+
+			_, err := x.processChunk(part, config, uint8(cIdx), idx, splitterRequirementMet)
 			if err != nil {
 				return err
 			}
@@ -175,7 +195,7 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 	return nil
 }
 
-func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx uint8) (isSplitter bool, err error) {
+func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx uint8, requireMet bool) (isSplitter bool, err error) {
 
 	if x.Tape == nil {
 		x.Tape = make([]Tape, 0)
@@ -222,10 +242,11 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 					splitOpStrPtr = &splitOpStr
 				}
 				// or an actual op splitter
-
 				if setting.Token != nil && (setting.Token.Op != nil && *setting.Token.Op == *op) || (setting.Token.Ops != nil && setting.Token.Ops == ops) || (setting.Token.S != nil && splitOpStrPtr != nil && *setting.Token.S == *splitOpStrPtr) {
-					splitter = setting.Include
-					isSplitter = true
+					if setting.Require == nil || requireMet {
+						splitter = setting.Include
+						isSplitter = true
+					}
 				}
 			} else {
 				// Script type
