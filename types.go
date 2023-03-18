@@ -1,5 +1,7 @@
 package bpu
 
+import "github.com/libsv/go-bt/v2"
+
 type IncludeType string
 
 const (
@@ -23,7 +25,8 @@ type SplitConfig struct {
 }
 
 type ParseConfig struct {
-	RawTxHex    string        `json:"tx" bson:"tx"`
+	Tx          *bt.Tx        `json:"tx" bson:"tx"`
+	RawTxHex    *string       `json:"rawTx" bson:"rawTx"`
 	SplitConfig []SplitConfig `json:"split,omitempty" bson:"split,omitempty"`
 	Transform   *Transform    `json:"transform,omitempty" bson:"transform,omitempty"`
 }

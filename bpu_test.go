@@ -64,7 +64,7 @@ var splitTransform Transform = func(o Cell, c string) (to *Cell, e error) {
 
 func TestTransform(t *testing.T) {
 	t.Run("bpu.Transform", func(t *testing.T) {
-		bpuTx, err := Parse(ParseConfig{RawTxHex: sampleTx, SplitConfig: splitConfig, Transform: &splitTransform})
+		bpuTx, err := Parse(ParseConfig{RawTxHex: &sampleTx, SplitConfig: splitConfig, Transform: &splitTransform})
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -79,7 +79,7 @@ func TestBpu(t *testing.T) {
 
 	t.Run("bpu.Parse", func(t *testing.T) {
 
-		bpuTx, err := Parse(ParseConfig{RawTxHex: sampleTx, SplitConfig: splitConfig})
+		bpuTx, err := Parse(ParseConfig{RawTxHex: &sampleTx, SplitConfig: splitConfig})
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -131,7 +131,7 @@ func TestUnicode(t *testing.T) {
 func TestBpuBitchat(t *testing.T) {
 
 	t.Run("bpu.Parse bitchat", func(t *testing.T) {
-		bpuTx, err := Parse(ParseConfig{RawTxHex: bitchatTx, SplitConfig: splitConfig})
+		bpuTx, err := Parse(ParseConfig{RawTxHex: &bitchatTx, SplitConfig: splitConfig})
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -152,7 +152,7 @@ func TestBpuBitchat(t *testing.T) {
 func TestBpuBuster(t *testing.T) {
 
 	t.Run("bpu.Parse bpu buster", func(t *testing.T) {
-		bpuTx, err := Parse(ParseConfig{RawTxHex: bpuBuster, SplitConfig: splitConfig})
+		bpuTx, err := Parse(ParseConfig{RawTxHex: &bpuBuster, SplitConfig: splitConfig})
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -174,7 +174,7 @@ func TestBpuBuster(t *testing.T) {
 func TestBoost(t *testing.T) {
 
 	t.Run("bpu.Parse boost", func(t *testing.T) {
-		bpuTx, err := Parse(ParseConfig{RawTxHex: boostTx, SplitConfig: splitConfig})
+		bpuTx, err := Parse(ParseConfig{RawTxHex: &boostTx, SplitConfig: splitConfig})
 		if err != nil {
 			fmt.Println(err)
 		}

@@ -43,11 +43,15 @@ var splitConfig = []SplitConfig{
 	},
 }
 
-bpuTx, err := Parse(ParseConfig{RawTxHex: sampleTx, SplitConfig: splitConfig})
+bpuTx, err := Parse(ParseConfig{RawTxHex: &sampleTx, SplitConfig: splitConfig})
 if err != nil {
   fmt.Println(err)
 }
 ```
+
+## Transaction Source
+
+You can either use SplitConfig.RawTxHex and set by hex string, or use SplitConfig.Tx to set by bt.Tx.
 
 ## Transform Function
 

@@ -16,7 +16,7 @@ import (
 // Parse is the main transformation function for the bpu package
 func Parse(config ParseConfig) (bpuTx *BpuTx, err error) {
 	bpuTx = new(BpuTx)
-	err = bpuTx.fromTx(config)
+	err = bpuTx.fromConfig(config)
 	if err != nil {
 		return nil, err
 	}
@@ -28,14 +28,19 @@ var defaultTransform Transform = func(r Cell, c string) (to *Cell, err error) {
 }
 
 // convert a raw tx to a bpu tx
-func (b *BpuTx) fromTx(config ParseConfig) (err error) {
-	if len(config.RawTxHex) == 0 {
-		return errors.New("raw tx must be set")
-	}
-
-	gene, err := bt.NewTxFromString(config.RawTxHex)
-	if err != nil {
-		return fmt.Errorf("failed to parse tx: %e", err)
+func (b *BpuTx) fromConfig(config ParseConfig) (err error) {
+	var gene *bt.Tx
+	if config.Tx != nil {
+		gene = config.Tx
+	} else {
+		if config.RawTxHex == nil || len(*config.RawTxHex) == 0 {
+			return errors.New("raw tx must be set")
+		} else {
+			gene, err = bt.NewTxFromString(*config.RawTxHex)
+			if err != nil {
+				return fmt.Errorf("failed to parse tx: %e", err)
+			}
+		}
 	}
 
 	var inXputs []XPut
