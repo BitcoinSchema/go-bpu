@@ -13,10 +13,7 @@ import (
 	"github.com/libsv/go-bt/v2/bscript"
 )
 
-var tape_i uint8 = 0
-var cell_i uint8 = 0
-
-/* Parse is the main transformation function for the bpu package */
+// Parse is the main transformation function for the bpu package
 func Parse(config ParseConfig) (bpuTx *BpuTx, err error) {
 	bpuTx = new(BpuTx)
 	err = bpuTx.fromTx(config)
@@ -131,8 +128,6 @@ func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (xput
 		for idx, input := range inputs {
 			var xput = new(XPut)
 			script := input.UnlockingScript
-			tape_i = 0
-			cell_i = 0
 			err := xput.fromScript(config, script, uint8(idx))
 			if err != nil {
 				return nil, nil, err
@@ -144,8 +139,6 @@ func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (xput
 	if outputs != nil {
 		for idx, output := range outputs {
 			var xput = new(XPut)
-			tape_i = 0
-			cell_i = 0
 			script := output.LockingScript
 			err := xput.fromScript(config, script, uint8(idx))
 			if err != nil {
@@ -159,6 +152,9 @@ func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (xput
 }
 
 func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8) error {
+	var tape_i uint8 = 0
+	var cell_i uint8 = 0
+
 	if script != nil {
 		parts, err := bscript.DecodeParts(*script)
 		if err != nil {
@@ -186,7 +182,7 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 
 			splitterRequirementMet = reqOmitted || requireMet
 
-			_, err := x.processChunk(part, config, uint8(cIdx), idx, splitterRequirementMet)
+			tape_i, cell_i, _, err = x.processChunk(part, config, uint8(cIdx), idx, splitterRequirementMet, tape_i, cell_i)
 			if err != nil {
 				return err
 			}
@@ -195,12 +191,12 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 	return nil
 }
 
-func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx uint8, requireMet bool) (isSplitter bool, err error) {
+func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx uint8, requireMet bool, tape_i, cell_i uint8) (uint8, uint8, bool, error) {
 
 	if x.Tape == nil {
 		x.Tape = make([]Tape, 0)
 	}
-	isSplitter = false
+	isSplitter := false
 	var op *uint8
 	var ops *string
 	var isOpType = false
@@ -259,6 +255,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 	}
 
 	var cell []Cell
+	var err error
 	if isSplitter && o.Transform != nil {
 		t := *o.Transform
 		var item *Cell
@@ -291,7 +288,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 				}, hexStr)
 			}
 			if err != nil {
-				return false, err
+				return tape_i, cell_i, false, err
 			}
 
 			cell = append(cell, *item)
@@ -323,7 +320,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 				II:  chunkIndex,
 			}, hexStr)
 			if err != nil {
-				return false, err
+				return tape_i, cell_i, false, err
 			}
 
 			cell = []Cell{*item}
@@ -343,7 +340,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 				II:  chunkIndex,
 			}, hexStr)
 			if err != nil {
-				return false, err
+				return tape_i, cell_i, false, err
 			}
 
 			cell = []Cell{*item}
@@ -374,7 +371,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 			}
 
 			if err != nil {
-				return false, err
+				return tape_i, cell_i, false, err
 			}
 
 			cell_i++
@@ -402,5 +399,5 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 		}
 
 	}
-	return isSplitter, nil
+	return tape_i, cell_i, isSplitter, nil
 }
