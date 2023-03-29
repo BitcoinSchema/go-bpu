@@ -6,9 +6,7 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/bitcoinschema/go-bitcoin"
 	"github.com/bitcoinschema/go-bpu/test"
-	"github.com/libsv/go-bt/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -212,16 +210,3 @@ func TestOrd(t *testing.T) {
 }
 
 // TODO: Split tests
-
-func testExampleTx() (*bt.Tx, error) {
-	pk := "80699541455b59a8a8a33b85892319de8b8e8944eb8b48e9467137825ae192e59f01"
-
-	privateKey, err := bitcoin.PrivateKeyFromString(pk)
-	if err != nil {
-		return nil, err
-	}
-
-	opReturn1 := bitcoin.OpReturnData{[]byte("prefix1"), []byte("example data"), []byte{0x13, 0x37}, []byte{0x7c}, []byte("prefix2"), []byte("example data 2")}
-
-	return bitcoin.CreateTx(nil, nil, []bitcoin.OpReturnData{opReturn1}, privateKey)
-}
