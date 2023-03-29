@@ -165,38 +165,44 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 		if err != nil {
 			return err
 		}
-
-		var requireMet = false
-		var reqOmitted = true
-		var splitterRequirementMet bool
+		requireMet := make(map[int]bool)
+		splitterRequirementMet := make(map[int]bool)
+		var prevSplitter bool
+		var isSplitter bool
 		for cIdx, part := range parts {
-			for _, req := range config.SplitConfig {
+			for configIndex, req := range config.SplitConfig {
+				var reqOmitted = true
 				if req.Require != nil {
 					reqOmitted = false
 
 					// Look through previous parts to see if the required token is found
-					chunksToCheck := parts[cIdx:]
+					chunksToCheck := parts[:cIdx]
 
 					for _, c := range chunksToCheck {
 						if len(c) == 1 && c[0] == *req.Require {
-							requireMet = true
+							requireMet[configIndex] = true
+							break
 						}
 					}
 				}
+				splitterRequirementMet[configIndex] = reqOmitted || requireMet[configIndex]
 			}
-
-			splitterRequirementMet = reqOmitted || requireMet
-
-			tape_i, cell_i, _, err = x.processChunk(part, config, uint8(cIdx), idx, splitterRequirementMet, tape_i, cell_i)
+			if prevSplitter {
+				cell_i = 0
+				tape_i++
+				prevSplitter = false
+			}
+			tape_i, cell_i, isSplitter, err = x.processChunk(part, config, uint8(cIdx), idx, splitterRequirementMet, tape_i, cell_i)
 			if err != nil {
 				return err
 			}
+			prevSplitter = isSplitter
 		}
 	}
 	return nil
 }
 
-func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx uint8, requireMet bool, tape_i, cell_i uint8) (uint8, uint8, bool, error) {
+func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx uint8, requireMet map[int]bool, tape_i, cell_i uint8) (uint8, uint8, bool, error) {
 
 	if x.Tape == nil {
 		x.Tape = make([]Tape, 0)
@@ -234,7 +240,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 
 	// Split config provided
 	if o.SplitConfig != nil {
-		for _, setting := range o.SplitConfig {
+		for configIndex, setting := range o.SplitConfig {
 			if ops != nil {
 				// Check if this is a manual seperator that happens to also be an opcode
 				var splitOpStrPtr *string
@@ -244,7 +250,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 				}
 				// or an actual op splitter
 				if setting.Token != nil && (setting.Token.Op != nil && *setting.Token.Op == *op) || (setting.Token.Ops != nil && setting.Token.Ops == ops) || (setting.Token.S != nil && splitOpStrPtr != nil && *setting.Token.S == *splitOpStrPtr) {
-					if setting.Require == nil || requireMet {
+					if setting.Require == nil || requireMet[configIndex] {
 						splitter = setting.Include
 						isSplitter = true
 					}
@@ -252,8 +258,11 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 			} else {
 				// Script type
 				if setting.Token != nil && (s != nil && setting.Token.S != nil && *setting.Token.S == *s) || (b != nil && setting.Token.B != nil && *setting.Token.B == *b) {
-					splitter = setting.Include
-					isSplitter = true
+					if setting.Require == nil || requireMet[configIndex] {
+						splitter = setting.Include
+
+						isSplitter = true
+					}
 				}
 			}
 		}
@@ -269,7 +278,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 			// Don't include the seperator by default, just make a new tape and reset cell
 			cell = make([]Cell, 0)
 			cell_i = 0
-			tape_i++
+			// tape_i++
 
 		} else if *splitter == IncludeL {
 			if isOpType {
@@ -306,7 +315,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 				// otherwise make a new tape
 				outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
 				x.Tape = outTapes
-				tape_i++
+				// tape_i++
 			}
 
 			cell_i = 0
@@ -330,7 +339,6 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 
 			cell = []Cell{*item}
 			cell_i = 1
-
 		} else if *splitter == IncludeR {
 			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
 			x.Tape = outTapes
@@ -355,7 +363,6 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 			cell = make([]Cell, 0)
 			cell_i = 0
 		}
-
 	} else {
 		if o.Transform != nil {
 			t := *o.Transform
@@ -390,15 +397,15 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 				// create new tape if needed
 				if len(x.Tape) == int(tape_i) {
 					x.Tape = append(x.Tape, Tape{
-						I: tape_i,
+						I:    tape_i,
+						Cell: make([]Cell, 0),
 					})
 				}
+
 				cell = append(x.Tape[tape_i].Cell, *item)
 
 				// add the cell to the tape
 				x.Tape[tape_i].Cell = cell
-
-				// reset cell
 			}
 
 		}

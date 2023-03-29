@@ -10,30 +10,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var sampleTx, bitchatTx, bpuBuster, boostTx string
+var sampleTx, bitchatTx, bpuBuster, boostTx, bigOrdTx string
 
 func init() {
 	sampleTx = test.GetTestHex("./test/data/98a5f6ef18eaea188bdfdc048f89a48af82627a15a76fd53584975f28ab3cc39.hex")
 	bitchatTx = test.GetTestHex("./test/data/653947cee3268c26efdcc97ef4e775d990e49daf81ecd2555127bda22fe5a21f.hex")
 	bpuBuster = test.GetTestHex("./test/data/58d8d8407ceb37c4a04bd76ea4c78c504c4692647ad5646ecfc9bd3187cb7266.hex")
 	boostTx = test.GetTestHex("./test/data/c5c7248302683107aa91014fd955908a7c572296e803512e497ddf7d1f458bd3.hex")
+	bigOrdTx = test.GetTestHex("./test/data/c8cd6ff398d23e12e65ab065757fe6caf2d74b5e214b638365d61583030aa069.hex")
 }
 
 var seperator = "|"
 var l = IncludeL
 var opReturn = uint8(106)
-var opFalse = uint8(0)
 
 var splitConfig = []SplitConfig{
 	{
 		Token: &Token{
 			Op: &opReturn,
-		},
-		Include: &l,
-	},
-	{
-		Token: &Token{
-			Op: &opFalse,
 		},
 		Include: &l,
 	},
@@ -190,6 +184,28 @@ func TestBoost(t *testing.T) {
 		assert.NotNil(t, bpuTx.Out[0].XPut.Tape)
 		assert.Equal(t, 1, len(bpuTx.Out[0].Tape))
 		assert.Equal(t, 89, len(bpuTx.Out[0].Tape[0].Cell))
+	})
+}
+
+func TestOrd(t *testing.T) {
+
+	t.Run("bpu.Parse ord", func(t *testing.T) {
+		bpuTx, err := Parse(ParseConfig{RawTxHex: &bigOrdTx, SplitConfig: splitConfig})
+		if err != nil {
+			fmt.Println(err)
+		}
+		assert.Nil(t, err)
+
+		assert.NotNil(t, bpuTx)
+
+		assert.Equal(t, 1, len(bpuTx.In))
+		assert.Equal(t, 1437, len(bpuTx.Out))
+
+		assert.NotNil(t, bpuTx.Out[0].Tape)
+		assert.NotNil(t, bpuTx.Out[0].XPut.Tape)
+		assert.Equal(t, 2, len(bpuTx.Out[0].Tape))
+		assert.Equal(t, 14, len(bpuTx.Out[0].Tape[0].Cell))
+		assert.Equal(t, 8, len(bpuTx.Out[0].Tape[1].Cell))
 	})
 }
 
