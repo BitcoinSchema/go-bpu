@@ -18,8 +18,9 @@ require (
 
 require (
 	github.com/bitcoinschema/go-bitcoin v0.3.20
+	github.com/bitcoinschema/go-bitcoin/v2 v2.0.3
 	github.com/libsv/go-bk v0.1.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.8.1
-	golang.org/x/crypto v0.0.0-20211209193657-4570a0811e8b // indirect
+	golang.org/x/crypto v0.6.0 // indirect
 )

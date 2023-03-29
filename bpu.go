@@ -189,7 +189,11 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 			}
 			if prevSplitter {
 				cell_i = 0
-				tape_i++
+				// when multiple consecutive splits ocur this can be incremented too far before splitting
+				// this will make sure tape is only incremented one past its length
+				if len(x.Tape) > int(tape_i) {
+					tape_i++
+				}
 				prevSplitter = false
 			}
 			tape_i, cell_i, isSplitter, err = x.processChunk(part, config, uint8(cIdx), idx, splitterRequirementMet, tape_i, cell_i)

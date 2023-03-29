@@ -210,3 +210,19 @@ func TestOrd(t *testing.T) {
 }
 
 // TODO: Split tests
+
+// ExampleNewFromTx example using NewFromTx()
+func TestExampleNew(t *testing.T) {
+	t.Run("bpu.Parse example", func(t *testing.T) {
+
+		exampleRawTx := "010000000001000000000000000033006a07707265666978310c6578616d706c652064617461021337017c07707265666978320e6578616d706c652064617461203200000000"
+
+		b, err := Parse(ParseConfig{RawTxHex: &exampleRawTx, SplitConfig: splitConfig})
+
+		assert.Nil(t, err)
+		assert.NotNil(t, b)
+
+		fmt.Printf("found tx: %s", b.Tx.H)
+	})
+	// Output:found tx: f94e4adeac0cee5e9ff9985373622db9524e9f98d465dc024f85aec8acfeaf16
+}
