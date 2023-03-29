@@ -323,7 +323,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 		} else if *splitter == IncludeC {
 			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
 			x.Tape = outTapes
-			tape_i++
+			//tape_i++
 			item, err := t(Cell{
 				Op:  op,
 				Ops: ops,
@@ -342,7 +342,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 		} else if *splitter == IncludeR {
 			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
 			x.Tape = outTapes
-			tape_i++
+			//tape_i++
 			item, err := t(Cell{
 				Op:  op,
 				Ops: ops,
