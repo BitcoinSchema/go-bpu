@@ -18,9 +18,32 @@ Since this is intended to be used by low level transaction parsers dependencies 
 
 There is also a [Typescript version](https://github.con/rohenaz/bpu-ts) which does include the originally RPC functionality.
 
-# Usage
+## Installation
 
-## Split Config
+**go-bitcoin** requires a [supported release of Go](https://golang.org/doc/devel/release.html#policy).
+
+```shell script
+go get -u github.com/bitcoinschema/go-bitcoin/v2
+```
+
+> If you want to install the **deprecated V1**:
+```shell script
+go get -u github.com/bitcoinschema/go-bitcoin@v1
+```
+
+<br/>
+
+## Documentation
+
+View the generated [documentation](https://pkg.go.dev/github.com/bitcoinschema/go-bpu)
+
+[![GoDoc](https://godoc.org/github.com/bitcoinschema/go-bpu/?status.svg&style=flat)](https://pkg.go.dev/github.com/bitcoinschema/go-bpu)
+
+<br/>
+
+## Usage
+
+### Split Config
 
 ```go
 var seperator = "|"
@@ -55,11 +78,11 @@ if err != nil {
 }
 ```
 
-## Transaction Source
+### Transaction Source
 
 You can either use SplitConfig.RawTxHex and set by hex string, or use SplitConfig.Tx to set by bt.Tx.
 
-## Transform Function
+### Transform Function
 
 You can pass an optional Transform function to bpu.Parse. Function should look something like this:
 
@@ -82,12 +105,35 @@ var splitTransform Transform = func(o Cell, c string) (to *Cell, e error) {
 }
 ```
 
-# More Usage details
+<br/>
+
+## More Usage details
 
 See the [Typescript library](https://github.com/rohenaz/bpu-ts) README for more examples of split configuration options, transformation, and a look at the output.
 
-# Errata
+## Errata
 
 The original BPU library used bsv (javascript) v1.5 to determine if a script chunk was a valid opcode. At the time, the bsv library supported a limited number of OP codes (inherited from limitations imposed by Bitcoin core). In this version all opcodes are recognized which surfaces a new issue where fields previously available would be missing if the data is now recognized as an opcode.
 
 Previously, BPU would omit the op and ops fields for non opcode data, while recognized opcodes would omit the s, b and h fields. To solve the issue of missing fields that happen to be opcodes, all keys are included if the recognized pushdata is also in the Printable ASCII range.
+
+<br/>
+
+## Contributing
+
+View the [contributing guidelines](.github/CONTRIBUTING.md) and follow the [code of conduct](.github/CODE_OF_CONDUCT.md).
+
+### How can I help?
+
+All kinds of contributions are welcome :raised_hands:!
+The most basic way to show your support is to star :star2: the project, or to raise issues :speech_balloon:.
+You can also support this project by [becoming a sponsor on GitHub](https://github.com/sponsors/BitcoinSchema) :clap:
+or by making a [**bitcoin donation**](https://gobitcoinsv.com/#sponsor?utm_source=github&utm_medium=sponsor-link&utm_campaign=go-bpu&utm_term=go-bpu&utm_content=go-bpu) to ensure this journey continues indefinitely! :rocket:
+
+[![Stars](https://img.shields.io/github/stars/BitcoinSchema/go-bpu?label=Please%20like%20us&style=social)](https://github.com/BitcoinSchema/go-bpu/stargazers)
+
+<br/>
+
+## License
+
+[![License](https://img.shields.io/github/license/BitcoinSchema/go-bpu.svg?style=flat&v=2)](LICENSE)
