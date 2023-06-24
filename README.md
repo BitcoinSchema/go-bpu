@@ -1,14 +1,20 @@
-# Go-BPU
-
-> Bitcoin Processing Unit
-
-Transform Bitcoin Transactions into Virtual Procedure Call Units.
+# go-bpu
+> Transform Bitcoin Transactions into Virtual Procedure Call Units (Bitcoin Processing Unit)
 
 ![bpu](./bpu.png)
 
-Transforms raw transactions to BOB format. Port from the original [bpu](https://github.com/interplanaria/bpu) library bu [unwriter](https://github.com/unwriter)
+[![Release](https://img.shields.io/github/release-pre/BitcoinSchema/go-bpu.svg?logo=github&style=flat&v=2)](https://github.com/BitcoinSchema/go-bpu/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/BitcoinSchema/go-bpu/run-tests.yml?branch=master&logo=github&v=2)](https://github.com/BitcoinSchema/go-bpu/actions)
+[![Go](https://img.shields.io/github/go-mod/go-version/BitcoinSchema/go-bpu?v=2)](https://golang.org/)
+<br>
+[![Mergify Status](https://img.shields.io/endpoint.svg?url=https://api.mergify.com/v1/badges/BitcoinSchema/go-bpu&style=flat&v=2)](https://mergify.io)
+[![Sponsor](https://img.shields.io/badge/sponsor-BitcoinSchema-181717.svg?logo=github&style=flat&v=2)](https://github.com/sponsors/BitcoinSchema)
+[![Donate](https://img.shields.io/badge/donate-bitcoin-ff9900.svg?logo=bitcoin&style=flat&v=2)](https://gobitcoinsv.com/#sponsor?utm_source=github&utm_medium=sponsor-link&utm_campaign=go-bpu&utm_term=go-bpu&utm_content=go-bpu)
+<br>
 
-Since this is intended to be used by low level transactoin parsers dependencies are kept to a bare minimum. It does not include the RPC client functionality that connects to a node to get a raw tx. Its designed to be a fast raw tx to BOB processor.
+Transforms raw transactions to BOB format. Port from the original [bpu](https://github.com/interplanaria/bpu) library by [unwriter](https://github.com/unwriter)
+
+Since this is intended to be used by low level transaction parsers dependencies are kept to a bare minimum. It does not include the RPC client functionality that connects to a node to get a raw tx. It's designed to be a fast raw tx to BOB processor.
 
 There is also a [Typescript version](https://github.con/rohenaz/bpu-ts) which does include the originally RPC functionality.
 
@@ -82,6 +88,6 @@ See the [Typescript library](https://github.com/rohenaz/bpu-ts) README for more 
 
 # Errata
 
-The original BPU library used bsv (javascript) v1.5 to determine if a script chunk was a valid opcode. At the time, the bsv library supported a limited number of OP codes (inherited from limitations uimposed by Bitcoin core). In this version all opcodes are recognized which surfaces a new issue where fields previously available would be missing if the data is now recognized as an opcode.
+The original BPU library used bsv (javascript) v1.5 to determine if a script chunk was a valid opcode. At the time, the bsv library supported a limited number of OP codes (inherited from limitations imposed by Bitcoin core). In this version all opcodes are recognized which surfaces a new issue where fields previously available would be missing if the data is now recognized as an opcode.
 
 Previously, BPU would omit the op and ops fields for non opcode data, while recognized opcodes would omit the s, b and h fields. To solve the issue of missing fields that happen to be opcodes, all keys are included if the recognized pushdata is also in the Printable ASCII range.
