@@ -20,15 +20,10 @@ There is also a [Typescript version](https://github.con/rohenaz/bpu-ts) which do
 
 ## Installation
 
-**go-bitcoin** requires a [supported release of Go](https://golang.org/doc/devel/release.html#policy).
+**go-bpu** requires a [supported release of Go](https://golang.org/doc/devel/release.html#policy).
 
 ```shell script
-go get -u github.com/bitcoinschema/go-bitcoin/v2
-```
-
-> If you want to install the **deprecated V1**:
-```shell script
-go get -u github.com/bitcoinschema/go-bitcoin@v1
+go get -u github.com/bitcoinschema/go-bpu
 ```
 
 <br/>
