@@ -1,8 +1,9 @@
+// Package util contains utility functions
 package util
 
 import "github.com/libsv/go-bt/v2/bscript"
 
-// this exists in bscript but is not exported :(
+// OpCodeStrings this exists in bscript but is not exported :(
 var OpCodeStrings = map[string]byte{
 	"OP_0":                   bscript.Op0,
 	"OP_ZERO":                bscript.OpZERO,
@@ -267,6 +268,7 @@ var OpCodeStrings = map[string]byte{
 	"OP_INVALIDOPCODE":       bscript.OpINVALIDOPCODE,
 }
 
+// OpCodeValues is the reverse lookup mapping the human-readable string
 var OpCodeValues = map[byte]string{
 	bscript.OpFALSE:               "OP_FALSE",
 	bscript.OpDATA1:               "OP_DATA_1",

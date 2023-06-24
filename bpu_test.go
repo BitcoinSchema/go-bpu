@@ -20,7 +20,7 @@ func init() {
 	bigOrdTx = test.GetTestHex("./test/data/c8cd6ff398d23e12e65ab065757fe6caf2d74b5e214b638365d61583030aa069.hex")
 }
 
-var seperator = "|"
+var separator = "|"
 var l = IncludeL
 var opReturn = uint8(106)
 
@@ -33,7 +33,7 @@ var splitConfig = []SplitConfig{
 	},
 	{
 		Token: &Token{
-			S: &seperator,
+			S: &separator,
 		},
 		Require: &opReturn,
 	},
@@ -152,7 +152,7 @@ func TestBpuBuster(t *testing.T) {
 		}
 		assert.Nil(t, err)
 
-		fmt.Printf("BpuTx %+v\n", *bpuTx)
+		fmt.Printf("Tx %+v\n", *bpuTx)
 		assert.NotNil(t, bpuTx)
 
 		assert.Equal(t, 1, len(bpuTx.In))

@@ -2,28 +2,35 @@ package bpu
 
 import "github.com/libsv/go-bt/v2"
 
+// IncludeType is the type of include
 type IncludeType string
 
+// Include types
 const (
 	IncludeL IncludeType = "l"
 	IncludeR IncludeType = "r"
 	IncludeC IncludeType = "c"
 )
 
+// Transform is a function to transform a cell
 type Transform func(o Cell, c string) (to *Cell, err error)
 
+// Token is a token to split on
 type Token struct {
 	S   *string `json:"s" bson:"s"`
 	B   *string `json:"b" bson:"b"`
 	Op  *uint8  `json:"op" bson:"op"`
 	Ops *string `json:"ops" bson:"ops"`
 }
+
+// SplitConfig is the configuration for splitting a transaction
 type SplitConfig struct {
 	Token   *Token       `json:"token,omitempty" bson:"token,omitempty"`
 	Include *IncludeType `json:"include,omitempty" bson:"include,omitempty"`
 	Require *uint8       `json:"require,omitempty" bson:"require,omitempty"`
 }
 
+// ParseConfig is the configuration for parsing a transaction
 type ParseConfig struct {
 	Tx          *bt.Tx        `json:"tx" bson:"tx"`
 	RawTxHex    *string       `json:"rawTx" bson:"rawTx"`
@@ -52,6 +59,7 @@ type Cell struct {
 	Ops *string `json:"ops,omitempty" bson:"ops,omitempty"`
 }
 
+// XPut is a transaction input or output
 type XPut struct {
 	I    uint8  `json:"i"`
 	Tape []Tape `json:"tape"`
@@ -87,9 +95,7 @@ type TxInfo struct {
 }
 
 // Tx is a BOB formatted Bitcoin transaction
-//
-// DO NOT CHANGE ORDER - aligned for memory optimization (malign)
-type BpuTx struct {
+type Tx struct {
 	In   []Input  `json:"in"`
 	Out  []Output `json:"out"`
 	ID   string   `json:"_id"`
