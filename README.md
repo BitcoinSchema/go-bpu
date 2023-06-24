@@ -11,6 +11,7 @@
 [![Sponsor](https://img.shields.io/badge/sponsor-BitcoinSchema-181717.svg?logo=github&style=flat&v=2)](https://github.com/sponsors/BitcoinSchema)
 [![Donate](https://img.shields.io/badge/donate-bitcoin-ff9900.svg?logo=bitcoin&style=flat&v=2)](https://gobitcoinsv.com/#sponsor?utm_source=github&utm_medium=sponsor-link&utm_campaign=go-bpu&utm_term=go-bpu&utm_content=go-bpu)
 <br>
+<br/>
 
 Transforms raw transactions to BOB format. Port from the original [bpu](https://github.com/interplanaria/bpu) library by [unwriter](https://github.com/unwriter)
 
@@ -77,6 +78,8 @@ if err != nil {
 
 You can either use SplitConfig.RawTxHex and set by hex string, or use SplitConfig.Tx to set by bt.Tx.
 
+<br/>
+
 ### Transform Function
 
 You can pass an optional Transform function to bpu.Parse. Function should look something like this:
@@ -105,6 +108,8 @@ var splitTransform Transform = func(o Cell, c string) (to *Cell, e error) {
 ## More Usage details
 
 See the [Typescript library](https://github.com/rohenaz/bpu-ts) README for more examples of split configuration options, transformation, and a look at the output.
+
+<br/>
 
 ## Errata
 
