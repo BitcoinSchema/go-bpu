@@ -3,7 +3,7 @@ module github.com/bitcoinschema/go-bpu
 go 1.18
 
 require (
-	github.com/libsv/go-bt/v2 v2.2.3
+	github.com/libsv/go-bt/v2 v2.2.4
 	github.com/stretchr/testify v1.8.4
 )
 
