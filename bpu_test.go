@@ -24,7 +24,7 @@ func init() {
 	testnetInvalid2 = test.GetTestHex("./test/data/8304cff75bdcc3a73cbd06f76008522b4f13d3544435c656a958b380a8d1063c.hex")
 }
 
-var seperator = "|"
+var separator = "|"
 var l = IncludeL
 var opReturn = uint8(106)
 
@@ -37,7 +37,7 @@ var splitConfig = []SplitConfig{
 	},
 	{
 		Token: &Token{
-			S: &seperator,
+			S: &separator,
 		},
 		Require: &opReturn,
 	},
@@ -156,7 +156,7 @@ func TestBpuBuster(t *testing.T) {
 		}
 		assert.Nil(t, err)
 
-		fmt.Printf("BpuTx %+v\n", *bpuTx)
+		fmt.Printf("Tx %+v\n", *bpuTx)
 		assert.NotNil(t, bpuTx)
 
 		assert.Equal(t, 1, len(bpuTx.In))

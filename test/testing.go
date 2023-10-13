@@ -1,3 +1,4 @@
+// Package test contains testing utilities
 package test
 
 import (
