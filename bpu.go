@@ -71,7 +71,7 @@ func (b *Tx) fromConfig(config ParseConfig) (err error) {
 }
 
 func processInputs(inXputs []XPut, geneInputs []*bt.Input) ([]Input, error) {
-	var inputs []Input
+	inputs := make([]Input, 0, len(geneInputs))
 
 	for idx, inXput := range inXputs {
 		geneInput := geneInputs[idx]
@@ -116,7 +116,7 @@ func processInputs(inXputs []XPut, geneInputs []*bt.Input) ([]Input, error) {
 }
 
 func processOutputs(outXputs []XPut, geneOutputs []*bt.Output) ([]Output, error) {
-	var outputs []Output
+	outputs := make([]Output, 0, len(geneOutputs))
 
 	for idx, outXput := range outXputs {
 		geneOutput := geneOutputs[idx]
