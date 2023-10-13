@@ -279,7 +279,7 @@ func (x *XPut) processSplitterChunk(
 		}
 
 		cell = append(cell, *item)
-		cellI++
+		//cellI++
 
 		// if theres an existing tape, add item to it...
 		if len(x.Tape) > 0 {
