@@ -34,7 +34,9 @@ type SplitConfig struct {
 type Mode string
 
 const (
-	Deep    Mode = "deep"
+	// Deep mode evalurates every pushdata regardless of quantity
+	Deep Mode = "deep"
+	// Shallow mode only evaluates the first 128 pushdata and the last 128 pushdatas
 	Shallow Mode = "shallow"
 )
 

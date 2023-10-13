@@ -49,13 +49,12 @@ func (b *Tx) fromConfig(config ParseConfig) (err error) {
 	}
 
 	// convert all of the xputs to inputs
-	var inputs = make([]Input, 0, len(gene.Inputs))
-	inputs, err = processInputs(inXputs, gene.Inputs)
+	inputs, err := processInputs(inXputs, gene.Inputs)
 	if err != nil {
 		return err
 	}
-	var outputs = make([]Output, 0, len(gene.Outputs))
-	outputs, err = processOutputs(outXputs, gene.Outputs)
+
+	outputs, err := processOutputs(outXputs, gene.Outputs)
 	if err != nil {
 		return err
 	}
@@ -144,8 +143,10 @@ func processOutputs(outXputs []XPut, geneOutputs []*bt.Output) ([]Output, error)
 	return outputs, nil
 }
 
-// splits inputs and outputs into tapes where delimeters are found (defined by parse config)
-func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (xputIns []XPut, xputOuts []XPut, err error) {
+// splits inputs and outputs into tapes wherever
+// delimeters are found (defined by parse config)
+func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (
+	xputIns []XPut, xputOuts []XPut, err error) {
 	if config.Transform == nil {
 		config.Transform = &defaultTransform
 	}
