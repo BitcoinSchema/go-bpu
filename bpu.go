@@ -49,13 +49,12 @@ func (b *Tx) fromConfig(config ParseConfig) (err error) {
 	}
 
 	// convert all of the xputs to inputs
-	var inputs = make([]Input, len(gene.Inputs))
-	inputs, err = processInputs(inXputs, gene.Inputs)
+	inputs, err := processInputs(inXputs, gene.Inputs)
 	if err != nil {
 		return err
 	}
-	var outputs = make([]Output, len(gene.Outputs))
-	outputs, err = processOutputs(outXputs, gene.Outputs)
+
+	outputs, err := processOutputs(outXputs, gene.Outputs)
 	if err != nil {
 		return err
 	}
