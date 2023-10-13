@@ -143,8 +143,10 @@ func processOutputs(outXputs []XPut, geneOutputs []*bt.Output) ([]Output, error)
 	return outputs, nil
 }
 
-// splits inputs and outputs into tapes where delimeters are found (defined by parse config)
-func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (xputIns []XPut, xputOuts []XPut, err error) {
+// splits inputs and outputs into tapes wherever
+// delimeters are found (defined by parse config)
+func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (
+	xputIns []XPut, xputOuts []XPut, err error) {
 	if config.Transform == nil {
 		config.Transform = &defaultTransform
 	}
