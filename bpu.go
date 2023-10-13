@@ -38,7 +38,7 @@ func (b *BpuTx) fromConfig(config ParseConfig) (err error) {
 		} else {
 			gene, err = bt.NewTxFromString(*config.RawTxHex)
 			if err != nil {
-				return fmt.Errorf("failed to parse tx: %e", err)
+				return fmt.Errorf("failed to parse tx: %w", err)
 			}
 		}
 	}
@@ -51,9 +51,29 @@ func (b *BpuTx) fromConfig(config ParseConfig) (err error) {
 	}
 
 	// convert all of the xputs to inputs
+	inputs, err := processInputs(inXputs, gene.Inputs)
+	if err != nil {
+		return err
+	}
+	outputs, err := processOutputs(outXputs, gene.Outputs)
+	if err != nil {
+		return err
+	}
+	txid := gene.TxID()
+	b.Tx = TxInfo{
+		H: txid,
+	}
+	b.In = inputs
+	b.Out = outputs
+	b.Lock = gene.LockTime
+
+	return
+}
+
+func processInputs(inXputs []XPut, geneInputs []*bt.Input) ([]Input, error) {
 	var inputs []Input
 	for idx, inXput := range inXputs {
-		geneInput := gene.Inputs[idx]
+		geneInput := geneInputs[idx]
 		var address *string
 		if geneInput.UnlockingScript != nil {
 			gInScript := *geneInput.UnlockingScript
@@ -64,14 +84,14 @@ func (b *BpuTx) fromConfig(config ParseConfig) (err error) {
 
 			parts, err := bscript.DecodeParts(gInScript)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			if len(parts) == 2 {
 				partHex := hex.EncodeToString(parts[1])
 				a, err := bscript.NewAddressFromPublicKeyString(partHex, true)
 				if err != nil {
-					return err
+					return nil, err
 				}
 				address = &a.AddressString
 			}
@@ -85,18 +105,22 @@ func (b *BpuTx) fromConfig(config ParseConfig) (err error) {
 		}
 		inputs = append(inputs, Input{
 			XPut: inXput,
-			Seq:  gene.Inputs[idx].SequenceNumber,
+			Seq:  geneInputs[idx].SequenceNumber,
 		})
 
 	}
+	return inputs, nil
+}
+
+func processOutputs(outXputs []XPut, geneOutputs []*bt.Output) ([]Output, error) {
 	var outputs []Output
 	for idx, outXput := range outXputs {
-		geneOutput := gene.Outputs[idx]
+		geneOutput := geneOutputs[idx]
 		var address *string
 
 		addresses, err := geneOutput.LockingScript.Addresses()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if len(addresses) > 0 {
 			address = &addresses[0]
@@ -112,45 +136,43 @@ func (b *BpuTx) fromConfig(config ParseConfig) (err error) {
 			XPut: outXput,
 		})
 	}
-
-	txid := gene.TxID()
-	b.Tx = TxInfo{
-		H: txid,
-	}
-	b.In = inputs
-	b.Out = outputs
-	b.Lock = gene.LockTime
-
-	return
+	return outputs, nil
 }
 
+// splits inputs and outputs into tapes where delimeters are found (defined by parse config)
 func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (xputIns []XPut, xputOuts []XPut, err error) {
 	if config.Transform == nil {
 		config.Transform = &defaultTransform
 	}
-	xputIns = make([]XPut, 0)
-	if inputs != nil {
-		for idx, input := range inputs {
-			var xput = new(XPut)
-			script := input.UnlockingScript
-			err := xput.fromScript(config, script, uint8(idx))
-			if err != nil {
-				return nil, nil, err
-			}
-			xputIns = append(xputIns, *xput)
-		}
+	if inputs == nil {
+		inputs = make([]*bt.Input, 0)
 	}
-	xputOuts = make([]XPut, 0)
-	if outputs != nil {
-		for idx, output := range outputs {
-			var xput = new(XPut)
-			script := output.LockingScript
-			err := xput.fromScript(config, script, uint8(idx))
-			if err != nil {
-				return nil, nil, err
-			}
-			xputOuts = append(xputOuts, *xput)
+	if outputs == nil {
+		outputs = make([]*bt.Output, 0)
+	}
+
+	xputIns = make([]XPut, 0)
+
+	for idx, input := range inputs {
+		var xput = new(XPut)
+		script := input.UnlockingScript
+		err := xput.fromScript(config, script, uint8(idx))
+		if err != nil {
+			return nil, nil, err
 		}
+		xputIns = append(xputIns, *xput)
+	}
+
+	xputOuts = make([]XPut, 0)
+
+	for idx, output := range outputs {
+		var xput = new(XPut)
+		script := output.LockingScript
+		err := xput.fromScript(config, script, uint8(idx))
+		if err != nil {
+			return nil, nil, err
+		}
+		xputOuts = append(xputOuts, *xput)
 	}
 
 	return xputIns, xputOuts, nil
@@ -227,6 +249,7 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 	return nil
 }
 
+// processes script part, identify splitters and assign to the appropriate tape
 func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx uint8, requireMet map[int]bool, tape_i, cell_i uint8) (uint8, uint8, bool, error) {
 
 	if x.Tape == nil {
@@ -293,148 +316,187 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8, idx u
 		}
 	}
 
-	var cell []Cell
-	var err error
-	if isSplitter && o.Transform != nil {
-		t := *o.Transform
-		var item *Cell
+	if o.Transform != nil {
 
-		if splitter == nil {
-			// Don't include the seperator by default, just make a new tape and reset cell
-			cell = make([]Cell, 0)
-			cell_i = 0
-			// tape_i++
-
-		} else if *splitter == IncludeL {
-			if isOpType {
-
-				item, err = t(Cell{
-					Op:  op,
-					Ops: ops,
-					S:   s,
-					H:   h,
-					B:   b,
-					I:   cell_i,
-					II:  chunkIndex,
-				}, hexStr)
-			} else {
-				item, err = t(Cell{
-					S:  s,
-					B:  b,
-					H:  h,
-					I:  cell_i,
-					II: chunkIndex,
-				}, hexStr)
-			}
-			if err != nil {
-				return tape_i, cell_i, false, err
-			}
-
-			cell = append(cell, *item)
-			cell_i++
-
-			// if theres an existing tape, add item to it...
-			if len(x.Tape) > 0 {
-				x.Tape[len(x.Tape)-1].Cell = append(x.Tape[len(x.Tape)-1].Cell, cell...)
-			} else {
-				// otherwise make a new tape
-				outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
-				x.Tape = outTapes
-				// tape_i++
-			}
-
-			cell_i = 0
-			cell = make([]Cell, 0)
-		} else if *splitter == IncludeC {
-			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
-			x.Tape = outTapes
-			//tape_i++
-			item, err := t(Cell{
-				Op:  op,
-				Ops: ops,
-				S:   s,
-				H:   h,
-				B:   b,
-				I:   cell_i,
-				II:  chunkIndex,
-			}, hexStr)
-			if err != nil {
-				return tape_i, cell_i, false, err
-			}
-
-			cell = []Cell{*item}
-			cell_i = 1
-		} else if *splitter == IncludeR {
-			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
-			x.Tape = outTapes
-			//tape_i++
-			item, err := t(Cell{
-				Op:  op,
-				Ops: ops,
-				S:   s,
-				H:   h,
-				B:   b,
-				I:   cell_i,
-				II:  chunkIndex,
-			}, hexStr)
-			if err != nil {
-				return tape_i, cell_i, false, err
-			}
-
-			cell = []Cell{*item}
-			outTapes = append(outTapes, Tape{Cell: cell, I: tape_i})
-			x.Tape = outTapes
-
-			cell = make([]Cell, 0)
-			cell_i = 0
-		}
-	} else {
-		if o.Transform != nil {
-			t := *o.Transform
-
-			var item *Cell
-			if isOpType {
-				item, err = t(
-					Cell{Op: op, Ops: ops, S: s,
-						H: h,
-						B: b, II: chunkIndex, I: cell_i},
-					hexStr,
-				)
-			} else {
-				item, err = t(
-					Cell{B: b, S: s, H: h, II: chunkIndex, I: cell_i},
-					hexStr,
-				)
-			}
-
-			if err != nil {
-				return tape_i, cell_i, false, err
-			}
-
-			cell_i++
-			if len(x.Tape) == 0 {
-				// create a new tape including the cell
-				cell = append(cell, *item)
-				outTape := append(x.Tape, Tape{Cell: cell, I: cell_i})
-				x.Tape = outTape
-			} else {
-
-				// create new tape if needed
-				if len(x.Tape) == int(tape_i) {
-					x.Tape = append(x.Tape, Tape{
-						I:    tape_i,
-						Cell: make([]Cell, 0),
-					})
-				}
-
-				cell = append(x.Tape[tape_i].Cell, *item)
-
-				// add the cell to the tape
-				x.Tape[tape_i].Cell = cell
-			}
-
+		if isSplitter {
+			return x.processSplitterChunk(o, splitter, cell_i, isOpType, op, ops, s, h, b, chunkIndex, tape_i, hexStr)
 		}
 
 	}
-	return tape_i, cell_i, isSplitter, nil
+
+	return x.processScriptChunk(o, isOpType, op, ops, s, h, b, chunkIndex, cell_i, tape_i, hexStr)
+}
+
+// process script chunk (non splitter)
+func (x *XPut) processScriptChunk(
+	o ParseConfig,
+	isOpType bool,
+	op *uint8,
+	ops *string,
+	s *string,
+	h *string,
+	b *string,
+	chunkIndex uint8,
+	cell_i uint8,
+	tape_i uint8,
+	hexStr string,
+) (uint8, uint8, bool, error) {
+
+	t := *o.Transform
+	var err error
+	var cell []Cell
+	var item *Cell
+	if isOpType {
+		item, err = t(
+			Cell{Op: op, Ops: ops, S: s,
+				H: h,
+				B: b, II: chunkIndex, I: cell_i},
+			hexStr,
+		)
+	} else {
+		item, err = t(
+			Cell{B: b, S: s, H: h, II: chunkIndex, I: cell_i},
+			hexStr,
+		)
+	}
+
+	if err != nil {
+		return tape_i, cell_i, false, err
+	}
+
+	cell_i++
+	if len(x.Tape) == 0 {
+		// create a new tape including the cell
+		cell = append(cell, *item)
+		outTape := append(x.Tape, Tape{Cell: cell, I: cell_i})
+		x.Tape = outTape
+	} else {
+
+		// create new tape if needed
+		if len(x.Tape) == int(tape_i) {
+			x.Tape = append(x.Tape, Tape{
+				I:    tape_i,
+				Cell: make([]Cell, 0),
+			})
+		}
+
+		cell = append(x.Tape[tape_i].Cell, *item)
+
+		// add the cell to the tape
+		x.Tape[tape_i].Cell = cell
+	}
+	return tape_i, cell_i, false, nil
+}
+
+// process script chunk (splitter)
+func (x *XPut) processSplitterChunk(
+	o ParseConfig,
+	splitter *IncludeType,
+	cell_i uint8,
+	isOpType bool,
+	op *uint8,
+	ops *string,
+	s *string,
+	h *string,
+	b *string,
+	chunkIndex uint8,
+	tape_i uint8,
+	hexStr string,
+) (uint8, uint8, bool, error) {
+	var err error
+	t := *o.Transform
+	cell := make([]Cell, 0)
+	var item *Cell
+	if splitter == nil {
+		// Don't include the seperator by default, just make a new tape and reset cell
+		// cell = make([]Cell, 0)
+		cell_i = 0
+		// tape_i++
+
+	} else if *splitter == IncludeL {
+		if isOpType {
+
+			item, err = t(Cell{
+				Op:  op,
+				Ops: ops,
+				S:   s,
+				H:   h,
+				B:   b,
+				I:   cell_i,
+				II:  chunkIndex,
+			}, hexStr)
+		} else {
+			item, err = t(Cell{
+				S:  s,
+				B:  b,
+				H:  h,
+				I:  cell_i,
+				II: chunkIndex,
+			}, hexStr)
+		}
+		if err != nil {
+			return tape_i, cell_i, false, err
+		}
+
+		cell = append(cell, *item)
+		cell_i++
+
+		// if theres an existing tape, add item to it...
+		if len(x.Tape) > 0 {
+			x.Tape[len(x.Tape)-1].Cell = append(x.Tape[len(x.Tape)-1].Cell, cell...)
+		} else {
+			// otherwise make a new tape
+			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
+			x.Tape = outTapes
+			// tape_i++
+		}
+
+		cell_i = 0
+		// cell = make([]Cell, 0)
+	} else if *splitter == IncludeC {
+		outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
+		x.Tape = outTapes
+		//tape_i++
+		// item, err := t(Cell{
+		// 	Op:  op,
+		// 	Ops: ops,
+		// 	S:   s,
+		// 	H:   h,
+		// 	B:   b,
+		// 	I:   cell_i,
+		// 	II:  chunkIndex,
+		// }, hexStr)
+		// if err != nil {
+		// 	return tape_i, cell_i, false, err
+		// }
+
+		// cell = []Cell{*item}
+		cell_i = 1
+	} else if *splitter == IncludeR {
+		outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
+		x.Tape = outTapes
+		//tape_i++
+		item, err := t(Cell{
+			Op:  op,
+			Ops: ops,
+			S:   s,
+			H:   h,
+			B:   b,
+			I:   cell_i,
+			II:  chunkIndex,
+		}, hexStr)
+		if err != nil {
+			return tape_i, cell_i, false, err
+		}
+
+		cell = []Cell{*item}
+		outTapes = append(outTapes, Tape{Cell: cell, I: tape_i})
+		x.Tape = outTapes
+
+		//cell = make([]Cell, 0)
+		cell_i = 0
+	}
+
+	return tape_i, cell_i, true, nil
+
 }
