@@ -1,4 +1,5 @@
 # go-bpu
+
 > Transform Bitcoin Transactions into Virtual Procedure Call Units (Bitcoin Processing Unit)
 
 ![bpu](./bpu.png)
@@ -42,7 +43,7 @@ View the generated [documentation](https://pkg.go.dev/github.com/bitcoinschema/g
 ### Split Config
 
 ```go
-var seperator = "|"
+var separator = "|"
 var l = bpu.IncludeL
 var opReturn = uint8(106)
 var opFalse = uint8(0)
@@ -62,7 +63,7 @@ var splitConfig = []SplitConfig{
 	},
 	{
 		Token: &Token{
-			S: &seperator,
+			S: &separator,
 		},
     Require: &opFalse,
 	},

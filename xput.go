@@ -177,8 +177,8 @@ func (x *XPut) processScriptChunk(
 	h *string,
 	b *string,
 	chunkIndex uint8,
-	cell_i uint8,
-	tape_i uint8,
+	cellI uint8,
+	tapeI uint8,
 	hexStr string,
 ) (uint8, uint8, bool, error) {
 
@@ -190,49 +190,49 @@ func (x *XPut) processScriptChunk(
 		item, err = t(
 			Cell{Op: op, Ops: ops, S: s,
 				H: h,
-				B: b, II: chunkIndex, I: cell_i},
+				B: b, II: chunkIndex, I: cellI},
 			hexStr,
 		)
 	} else {
 		item, err = t(
-			Cell{B: b, S: s, H: h, II: chunkIndex, I: cell_i},
+			Cell{B: b, S: s, H: h, II: chunkIndex, I: cellI},
 			hexStr,
 		)
 	}
 
 	if err != nil {
-		return tape_i, cell_i, false, err
+		return tapeI, cellI, false, err
 	}
 
-	cell_i++
+	cellI++
 	if len(x.Tape) == 0 {
 		// create a new tape including the cell
 		cell = append(cell, *item)
-		outTape := append(x.Tape, Tape{Cell: cell, I: cell_i})
+		outTape := append(x.Tape, Tape{Cell: cell, I: cellI})
 		x.Tape = outTape
 	} else {
 
 		// create new tape if needed
-		if len(x.Tape) == int(tape_i) {
+		if len(x.Tape) == int(tapeI) {
 			x.Tape = append(x.Tape, Tape{
-				I:    tape_i,
+				I:    tapeI,
 				Cell: make([]Cell, 0),
 			})
 		}
 
-		cell = append(x.Tape[tape_i].Cell, *item)
+		cell = append(x.Tape[tapeI].Cell, *item)
 
 		// add the cell to the tape
-		x.Tape[tape_i].Cell = cell
+		x.Tape[tapeI].Cell = cell
 	}
-	return tape_i, cell_i, false, nil
+	return tapeI, cellI, false, nil
 }
 
 // process script chunk (splitter)
 func (x *XPut) processSplitterChunk(
 	o ParseConfig,
 	splitter *IncludeType,
-	cell_i uint8,
+	cellI uint8,
 	isOpType bool,
 	op *uint8,
 	ops *string,
@@ -240,7 +240,7 @@ func (x *XPut) processSplitterChunk(
 	h *string,
 	b *string,
 	chunkIndex uint8,
-	tape_i uint8,
+	tapeI uint8,
 	hexStr string,
 ) (uint8, uint8, bool, error) {
 	var err error
@@ -248,10 +248,10 @@ func (x *XPut) processSplitterChunk(
 	cell := make([]Cell, 0)
 	var item *Cell
 	if splitter == nil {
-		// Don't include the seperator by default, just make a new tape and reset cell
+		// Don't include the separator by default, just make a new tape and reset cell
 		// cell = make([]Cell, 0)
-		cell_i = 0
-		// tape_i++
+		cellI = 0
+		// tapeI++
 
 	} else if *splitter == IncludeL {
 		if isOpType {
@@ -262,7 +262,7 @@ func (x *XPut) processSplitterChunk(
 				S:   s,
 				H:   h,
 				B:   b,
-				I:   cell_i,
+				I:   cellI,
 				II:  chunkIndex,
 			}, hexStr)
 		} else {
@@ -270,73 +270,73 @@ func (x *XPut) processSplitterChunk(
 				S:  s,
 				B:  b,
 				H:  h,
-				I:  cell_i,
+				I:  cellI,
 				II: chunkIndex,
 			}, hexStr)
 		}
 		if err != nil {
-			return tape_i, cell_i, false, err
+			return tapeI, cellI, false, err
 		}
 
 		cell = append(cell, *item)
-		cell_i++
+		cellI++
 
 		// if theres an existing tape, add item to it...
 		if len(x.Tape) > 0 {
 			x.Tape[len(x.Tape)-1].Cell = append(x.Tape[len(x.Tape)-1].Cell, cell...)
 		} else {
 			// otherwise make a new tape
-			outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
+			outTapes := append(x.Tape, Tape{Cell: cell, I: tapeI})
 			x.Tape = outTapes
-			// tape_i++
+			// tapeI++
 		}
 
-		cell_i = 0
+		cellI = 0
 		// cell = make([]Cell, 0)
 	} else if *splitter == IncludeC {
-		outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
+		outTapes := append(x.Tape, Tape{Cell: cell, I: tapeI})
 		x.Tape = outTapes
-		//tape_i++
+		//tapeI++
 		// item, err := t(Cell{
 		// 	Op:  op,
 		// 	Ops: ops,
 		// 	S:   s,
 		// 	H:   h,
 		// 	B:   b,
-		// 	I:   cell_i,
+		// 	I:   cellI,
 		// 	II:  chunkIndex,
 		// }, hexStr)
 		// if err != nil {
-		// 	return tape_i, cell_i, false, err
+		// 	return tapeI, cellI, false, err
 		// }
 
 		// cell = []Cell{*item}
-		cell_i = 1
+		cellI = 1
 	} else if *splitter == IncludeR {
-		outTapes := append(x.Tape, Tape{Cell: cell, I: tape_i})
+		outTapes := append(x.Tape, Tape{Cell: cell, I: tapeI})
 		x.Tape = outTapes
-		//tape_i++
+		//tapeI++
 		item, err := t(Cell{
 			Op:  op,
 			Ops: ops,
 			S:   s,
 			H:   h,
 			B:   b,
-			I:   cell_i,
+			I:   cellI,
 			II:  chunkIndex,
 		}, hexStr)
 		if err != nil {
-			return tape_i, cell_i, false, err
+			return tapeI, cellI, false, err
 		}
 
 		cell = []Cell{*item}
-		outTapes = append(outTapes, Tape{Cell: cell, I: tape_i})
+		outTapes = append(outTapes, Tape{Cell: cell, I: tapeI})
 		x.Tape = outTapes
 
 		//cell = make([]Cell, 0)
-		cell_i = 0
+		cellI = 0
 	}
 
-	return tape_i, cell_i, true, nil
+	return tapeI, cellI, true, nil
 
 }
