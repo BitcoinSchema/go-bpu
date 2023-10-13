@@ -24,11 +24,20 @@ type SplitConfig struct {
 	Require *uint8       `json:"require,omitempty" bson:"require,omitempty"`
 }
 
+// Mode is either deep or shallow
+type Mode string
+
+const (
+	Deep    Mode = "deep"
+	Shallow Mode = "shallow"
+)
+
 type ParseConfig struct {
 	Tx          *bt.Tx        `json:"tx" bson:"tx"`
 	RawTxHex    *string       `json:"rawTx" bson:"rawTx"`
 	SplitConfig []SplitConfig `json:"split,omitempty" bson:"split,omitempty"`
 	Transform   *Transform    `json:"transform,omitempty" bson:"transform,omitempty"`
+	Mode        *Mode         `json:"mode,omitempty" bson:"mode,omitempty"`
 }
 
 // E has address and value information

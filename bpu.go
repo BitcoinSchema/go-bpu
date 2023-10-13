@@ -161,6 +161,7 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 	var cell_i uint8 = 0
 
 	if script != nil {
+
 		parts, err := bscript.DecodeParts(*script)
 		if err != nil {
 			return err
@@ -169,6 +170,26 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 		splitterRequirementMet := make(map[int]bool)
 		var prevSplitter bool
 		var isSplitter bool
+
+		// If we encounter an invalid opcode as the first byte
+		// of the script, skip processing the rest of the script
+		if len(parts) > 0 && len(parts[0]) == 1 {
+			// make sure it exists in the map
+			if util.OpCodeValues[parts[0][0]] == "OP_INVALIDOPCODE" || util.OpCodeValues[parts[0][0]] == "" {
+				return fmt.Errorf("script begins with invalid opcode: %x", parts[0][0])
+			}
+		}
+
+		// In shallow mode we should take only the first N parts + the last N parts and concat them
+		// this way we catch p2pkh prefix addresses etc, but we don't have to process the entire script
+		if config.Mode != nil && *config.Mode != "deep" {
+			// In shallow mode we truncate anything over 255 pushdatas (not bytes)
+			if len(parts) > 255 {
+				// take the first 128 parts and the last 128 parts and concat them
+				parts = append(parts[:128], parts[len(parts)-128:]...)
+			}
+		}
+
 		for cIdx, part := range parts {
 			for configIndex, req := range config.SplitConfig {
 				var reqOmitted = true

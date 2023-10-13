@@ -43,7 +43,7 @@ var splitConfig = []SplitConfig{
 	},
 }
 
-bpuTx, err := Parse(ParseConfig{RawTxHex: &sampleTx, SplitConfig: splitConfig})
+bpuTx, err := Parse(ParseConfig{RawTxHex: &sampleTx, SplitConfig: splitConfig, Mode: *bpu.Shallow})
 if err != nil {
   fmt.Println(err)
 }

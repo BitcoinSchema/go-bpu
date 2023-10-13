@@ -7,10 +7,12 @@ import (
 	"unicode"
 
 	"github.com/bitcoinschema/go-bpu/test"
+	"github.com/libsv/go-bt/v2"
+	"github.com/libsv/go-bt/v2/bscript"
 	"github.com/stretchr/testify/assert"
 )
 
-var sampleTx, bitchatTx, bpuBuster, boostTx, bigOrdTx string
+var sampleTx, bitchatTx, bpuBuster, boostTx, bigOrdTx, testnetInvalidOpcode, testnetInvalid2 string
 
 func init() {
 	sampleTx = test.GetTestHex("./test/data/98a5f6ef18eaea188bdfdc048f89a48af82627a15a76fd53584975f28ab3cc39.hex")
@@ -18,6 +20,8 @@ func init() {
 	bpuBuster = test.GetTestHex("./test/data/58d8d8407ceb37c4a04bd76ea4c78c504c4692647ad5646ecfc9bd3187cb7266.hex")
 	boostTx = test.GetTestHex("./test/data/c5c7248302683107aa91014fd955908a7c572296e803512e497ddf7d1f458bd3.hex")
 	bigOrdTx = test.GetTestHex("./test/data/c8cd6ff398d23e12e65ab065757fe6caf2d74b5e214b638365d61583030aa069.hex")
+	testnetInvalidOpcode = test.GetTestHex("./test/data/9d49d0bdeef143efc7fae97e04a752fee1307249de8c217f86bf92c24e71afdf.hex")
+	testnetInvalid2 = test.GetTestHex("./test/data/8304cff75bdcc3a73cbd06f76008522b4f13d3544435c656a958b380a8d1063c.hex")
 }
 
 var seperator = "|"
@@ -206,6 +210,38 @@ func TestOrd(t *testing.T) {
 		assert.Equal(t, 2, len(bpuTx.Out[0].Tape))
 		assert.Equal(t, 14, len(bpuTx.Out[0].Tape[0].Cell))
 		assert.Equal(t, 8, len(bpuTx.Out[0].Tape[1].Cell))
+	})
+}
+
+func TestDecodeParts(t *testing.T) {
+	gene, err := bt.NewTxFromString(testnetInvalidOpcode)
+	assert.Nil(t, err)
+	script := gene.Outputs[0].LockingScript
+	parts, err := bscript.DecodeParts(*script)
+	assert.Nil(t, err)
+	assert.Equal(t, 999640, len(parts))
+}
+
+func TestTestnetInvalidOpcodes(t *testing.T) {
+
+	t.Run("testnet invalid opcodes", func(t *testing.T) {
+		bpuTx, err := Parse(ParseConfig{RawTxHex: &testnetInvalidOpcode, SplitConfig: splitConfig})
+		if err != nil {
+			fmt.Println(err)
+		}
+		assert.Nil(t, bpuTx)
+		assert.NotNil(t, err)
+
+	})
+}
+
+func TestTestnetInvalid2(t *testing.T) {
+
+	t.Run("testnet invalid opcodes 2", func(t *testing.T) {
+		shallow := Shallow
+		bpuTx, err := Parse(ParseConfig{RawTxHex: &testnetInvalid2, SplitConfig: splitConfig, Mode: &shallow})
+		assert.NotNil(t, bpuTx)
+		assert.Nil(t, err)
 	})
 }
 
