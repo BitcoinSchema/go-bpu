@@ -87,7 +87,7 @@ func processInputs(inXputs []XPut, geneInputs []*bt.Input) ([]Input, error) {
 				return nil, err
 			}
 
-			if len(parts) == 2 {
+			if len(parts) >= 2 {
 				partHex := hex.EncodeToString(parts[1])
 				var a *bscript.Address
 				a, err = bscript.NewAddressFromPublicKeyString(partHex, true)
