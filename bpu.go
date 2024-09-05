@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/libsv/go-bt/v2"
-	"github.com/libsv/go-bt/v2/bscript"
+	"github.com/bitcoin-sv/go-sdk/script"
+	"github.com/bitcoin-sv/go-sdk/transaction"
 )
 
 // Parse is the main transformation function for the bpu package
@@ -27,7 +27,7 @@ var defaultTransform Transform = func(r Cell, c string) (to *Cell, err error) {
 
 // convert a raw tx to a bpu tx
 func (b *Tx) fromConfig(config ParseConfig) (err error) {
-	var gene *bt.Tx
+	var gene *transaction.Transaction
 	if config.Tx != nil {
 		gene = config.Tx
 	} else {
@@ -35,7 +35,7 @@ func (b *Tx) fromConfig(config ParseConfig) (err error) {
 			return errors.New("raw tx must be set")
 
 		}
-		gene, err = bt.NewTxFromString(*config.RawTxHex)
+		gene, err = transaction.NewTransactionFromHex(*config.RawTxHex)
 		if err != nil {
 			return fmt.Errorf("failed to parse tx: %w", err)
 		}
@@ -60,7 +60,7 @@ func (b *Tx) fromConfig(config ParseConfig) (err error) {
 	}
 	txid := gene.TxID()
 	b.Tx = TxInfo{
-		H: txid,
+		H: txid.String(),
 	}
 	b.In = inputs
 	b.Out = outputs
@@ -69,7 +69,7 @@ func (b *Tx) fromConfig(config ParseConfig) (err error) {
 	return
 }
 
-func processInputs(inXputs []XPut, geneInputs []*bt.Input) ([]Input, error) {
+func processInputs(inXputs []XPut, geneInputs []*transaction.TransactionInput) ([]Input, error) {
 	inputs := make([]Input, 0, len(geneInputs))
 
 	for idx, inXput := range inXputs {
@@ -82,27 +82,27 @@ func processInputs(inXputs []XPut, geneInputs []*bt.Input) ([]Input, error) {
 			// https://github.com/libsv/go-bt/pull/133
 			// only a problem for input scripts
 
-			parts, err := bscript.DecodeParts(gInScript)
+			parts, err := script.DecodeScript(gInScript)
 			if err != nil {
 				return nil, err
 			}
 
-			if len(parts) == 2 || (len(parts) >= 2 && len(parts[1]) == 33) {
-				partHex := hex.EncodeToString(parts[1])
-				var a *bscript.Address
-				a, err = bscript.NewAddressFromPublicKeyString(partHex, true)
+			if len(parts) == 2 || (len(parts) >= 2 && len(parts[1].Data) == 33) {
+				partHex := hex.EncodeToString(parts[1].Data)
+				var a *script.Address
+				a, err = script.NewAddressFromPublicKeyString(partHex, true)
 				if err != nil {
 					return nil, err
 				}
 				address = &a.AddressString
 			}
 		}
-		prevTxid := hex.EncodeToString(geneInput.PreviousTxID())
+		prevTxid := geneInput.SourceTXID.String()
 		inXput.E = E{
 			A: address,
-			V: &geneInput.PreviousTxSatoshis,
+			V: geneInput.SourceTxSatoshis(),
 			H: &prevTxid,
-			I: geneInput.PreviousTxOutIndex,
+			I: geneInput.SourceTxOutIndex,
 		}
 		inputs = append(inputs, Input{
 			XPut: inXput,
@@ -114,7 +114,7 @@ func processInputs(inXputs []XPut, geneInputs []*bt.Input) ([]Input, error) {
 	return inputs, nil
 }
 
-func processOutputs(outXputs []XPut, geneOutputs []*bt.Output) ([]Output, error) {
+func processOutputs(outXputs []XPut, geneOutputs []*transaction.TransactionOutput) ([]Output, error) {
 	outputs := make([]Output, 0, len(geneOutputs))
 
 	for idx, outXput := range outXputs {
@@ -145,16 +145,16 @@ func processOutputs(outXputs []XPut, geneOutputs []*bt.Output) ([]Output, error)
 
 // splits inputs and outputs into tapes wherever
 // delimeters are found (defined by parse config)
-func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (
+func collect(config ParseConfig, inputs []*transaction.TransactionInput, outputs []*transaction.TransactionOutput) (
 	xputIns []XPut, xputOuts []XPut, err error) {
 	if config.Transform == nil {
 		config.Transform = &defaultTransform
 	}
 	if inputs == nil {
-		inputs = make([]*bt.Input, 0)
+		inputs = make([]*transaction.TransactionInput, 0)
 	}
 	if outputs == nil {
-		outputs = make([]*bt.Output, 0)
+		outputs = make([]*transaction.TransactionOutput, 0)
 	}
 
 	// preallocate memory
@@ -162,8 +162,8 @@ func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (
 
 	for idx, input := range inputs {
 		var xput = new(XPut)
-		script := input.UnlockingScript
-		err := xput.fromScript(config, script, uint8(idx))
+		s := input.UnlockingScript
+		err := xput.fromScript(config, s, uint8(idx))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -175,8 +175,8 @@ func collect(config ParseConfig, inputs []*bt.Input, outputs []*bt.Output) (
 
 	for idx, output := range outputs {
 		var xput = new(XPut)
-		script := output.LockingScript
-		err := xput.fromScript(config, script, uint8(idx))
+		s := output.LockingScript
+		err := xput.fromScript(config, s, uint8(idx))
 		if err != nil {
 			return nil, nil, err
 		}

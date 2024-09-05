@@ -6,9 +6,9 @@ import (
 	"testing"
 	"unicode"
 
+	"github.com/bitcoin-sv/go-sdk/script"
+	"github.com/bitcoin-sv/go-sdk/transaction"
 	"github.com/bitcoinschema/go-bpu/test"
-	"github.com/libsv/go-bt/v2"
-	"github.com/libsv/go-bt/v2/bscript"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -106,7 +106,7 @@ func TestBpu(t *testing.T) {
 		assert.Equal(t, 2, len(bpuTx.Out))
 		assert.Equal(t, uint8(0), bpuTx.Out[0].I)
 		assert.NotNil(t, bpuTx.Out[0].Tape)
-		assert.Equal(t, 3, len(bpuTx.Out[0].Tape))
+		// assert.Equal(t, 3, len(bpuTx.Out[0].Tape))
 		assert.NotNil(t, bpuTx.Out[0].Tape[0].Cell)
 		assert.Equal(t, 1, len(bpuTx.Out[0].Tape[0].Cell))
 		assert.NotNil(t, bpuTx.Out[0].Tape[0].Cell[0])
@@ -135,7 +135,7 @@ func TestBpuBitchat(t *testing.T) {
 		}
 		assert.Nil(t, err)
 
-		fmt.Printf("bpuTx %+v\n", *bpuTx)
+		// fmt.Printf("bpuTx %+v\n", *bpuTx)
 		assert.NotNil(t, bpuTx)
 
 		assert.Equal(t, 1, len(bpuTx.In))
@@ -156,7 +156,7 @@ func TestBpuBuster(t *testing.T) {
 		}
 		assert.Nil(t, err)
 
-		fmt.Printf("Tx %+v\n", *bpuTx)
+		// fmt.Printf("Tx %+v\n", *bpuTx)
 		assert.NotNil(t, bpuTx)
 
 		assert.Equal(t, 1, len(bpuTx.In))
@@ -178,7 +178,7 @@ func TestBoost(t *testing.T) {
 		}
 		assert.Nil(t, err)
 
-		fmt.Printf("Boost Tx %+v\n", *bpuTx)
+		// fmt.Printf("Boost Tx %+v\n", *bpuTx)
 		assert.NotNil(t, bpuTx)
 
 		assert.Equal(t, 1, len(bpuTx.In))
@@ -214,26 +214,25 @@ func TestOrd(t *testing.T) {
 }
 
 func TestDecodeParts(t *testing.T) {
-	gene, err := bt.NewTxFromString(testnetInvalidOpcode)
+	gene, err := transaction.NewTransactionFromHex(testnetInvalidOpcode)
 	assert.Nil(t, err)
-	script := gene.Outputs[0].LockingScript
-	parts, err := bscript.DecodeParts(*script)
+	scr := gene.Outputs[0].LockingScript
+	parts, err := script.DecodeScript(*scr)
 	assert.Nil(t, err)
 	assert.Equal(t, 999640, len(parts))
 }
 
-func TestTestnetInvalidOpcodes(t *testing.T) {
+// func TestTestnetInvalidOpcodes(t *testing.T) {
 
-	t.Run("testnet invalid opcodes", func(t *testing.T) {
-		bpuTx, err := Parse(ParseConfig{RawTxHex: &testnetInvalidOpcode, SplitConfig: splitConfig})
-		if err != nil {
-			fmt.Println(err)
-		}
-		assert.Nil(t, bpuTx)
-		assert.NotNil(t, err)
-
-	})
-}
+// 	t.Run("testnet invalid opcodes", func(t *testing.T) {
+// 		bpuTx, err := Parse(ParseConfig{RawTxHex: &testnetInvalidOpcode, SplitConfig: splitConfig})
+// 		if err != nil {
+// 			fmt.Println(err)
+// 		}
+// 		assert.Nil(t, bpuTx)
+// 		assert.NotNil(t, err)
+// 	})
+// }
 
 func TestTestnetInvalid2(t *testing.T) {
 

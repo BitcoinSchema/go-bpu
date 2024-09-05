@@ -1,6 +1,8 @@
 package bpu
 
-import "github.com/libsv/go-bt/v2"
+import (
+	"github.com/bitcoin-sv/go-sdk/transaction"
+)
 
 // IncludeType is the type of include
 type IncludeType string
@@ -42,11 +44,11 @@ const (
 
 // ParseConfig is the configuration for parsing a transaction
 type ParseConfig struct {
-	Tx          *bt.Tx        `json:"tx" bson:"tx"`
-	RawTxHex    *string       `json:"rawTx" bson:"rawTx"`
-	SplitConfig []SplitConfig `json:"split,omitempty" bson:"split,omitempty"`
-	Transform   *Transform    `json:"transform,omitempty" bson:"transform,omitempty"`
-	Mode        *Mode         `json:"mode,omitempty" bson:"mode,omitempty"`
+	Tx          *transaction.Transaction `json:"tx" bson:"tx"`
+	RawTxHex    *string                  `json:"rawTx" bson:"rawTx"`
+	SplitConfig []SplitConfig            `json:"split,omitempty" bson:"split,omitempty"`
+	Transform   *Transform               `json:"transform,omitempty" bson:"transform,omitempty"`
+	Mode        *Mode                    `json:"mode,omitempty" bson:"mode,omitempty"`
 }
 
 // E has address and value information
