@@ -55,7 +55,7 @@ func (x *XPut) fromScript(config ParseConfig, scrpt *script.Script, idx uint8) e
 					chunksToCheck := parts[:cIdx]
 
 					for _, c := range chunksToCheck {
-						if len(c.Data) == 1 && c.Data[0] == *req.Require {
+						if c.Op == *req.Require || (len(c.Data) == 1 && c.Data[0] == *req.Require) {
 							requireMet[configIndex] = true
 							break
 						}
