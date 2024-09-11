@@ -67,7 +67,7 @@ func TestTransform(t *testing.T) {
 			fmt.Println(err)
 		}
 
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.NotNil(t, bpuTx)
 		// TODO: Test the transform actually worked with a large tx
 	})
@@ -81,13 +81,13 @@ func TestBpu(t *testing.T) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.NotNil(t, bpuTx)
 
 		// Inputs
-		assert.Equal(t, 1, len(bpuTx.In))
+		assert.Len(t, bpuTx.In, 1)
 		assert.NotNil(t, bpuTx.In[0].Tape)
-		assert.Equal(t, 1, len(bpuTx.In[0].Tape))
+		assert.Len(t, bpuTx.In[0].Tape, 1)
 		assert.NotNil(t, len(bpuTx.In[0].Tape[0].Cell))
 		assert.NotNil(t, bpuTx.In[0].Tape[0].Cell[0])
 		assert.Nil(t, bpuTx.In[0].Tape[0].Cell[0].Op)
@@ -103,7 +103,7 @@ func TestBpu(t *testing.T) {
 		assert.Equal(t, "98a5f6ef18eaea188bdfdc048f89a48af82627a15a76fd53584975f28ab3cc39", bpuTx.Tx.H)
 
 		// Outputs
-		assert.Equal(t, 2, len(bpuTx.Out))
+		assert.Len(t, bpuTx.Out, 2)
 		assert.Equal(t, uint8(0), bpuTx.Out[0].I)
 		assert.NotNil(t, bpuTx.Out[0].Tape)
 		// assert.Equal(t, 3, len(bpuTx.Out[0].Tape))
