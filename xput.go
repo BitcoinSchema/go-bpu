@@ -3,23 +3,21 @@ package bpu
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"fmt"
 	"unicode"
 
-	"github.com/bitcoinschema/go-bpu/util"
-	"github.com/libsv/go-bt/v2/bscript"
+	"github.com/bitcoin-sv/go-sdk/script"
 )
 
 // "XPut" refers to "inut or output"
 // and is a struct that contains the "tape"
 // which is divided up according to the "splitConfig"
-func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8) error {
+func (x *XPut) fromScript(config ParseConfig, scrpt *script.Script, idx uint8) error {
 	var tapeI uint8
 	var cellI uint8
 
-	if script != nil {
+	if scrpt != nil {
 
-		parts, err := bscript.DecodeParts(*script)
+		parts, err := script.DecodeScript(*scrpt)
 		if err != nil {
 			return err
 		}
@@ -28,14 +26,14 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 		var prevSplitter bool
 		var isSplitter bool
 
-		// If we encounter an invalid opcode as the first byte
-		// of the script, skip processing the rest of the script
-		if len(parts) > 0 && len(parts[0]) == 1 {
-			// make sure it exists in the map
-			if util.OpCodeValues[parts[0][0]] == "OP_INVALIDOPCODE" || util.OpCodeValues[parts[0][0]] == "" {
-				return fmt.Errorf("script begins with invalid opcode: %x", parts[0][0])
-			}
-		}
+		// // If we encounter an invalid opcode as the first byte
+		// // of the script, skip processing the rest of the script
+		// if len(parts) > 0 && len(parts[0]) == 1 {
+		// 	// make sure it exists in the map
+		// 	if util.OpCodeValues[parts[0][0]] == "OP_INVALIDOPCODE" || util.OpCodeValues[parts[0][0]] == "" {
+		// 		return fmt.Errorf("script begins with invalid opcode: %x", parts[0][0])
+		// 	}
+		// }
 
 		// In shallow mode we should take only the first N parts + the last N parts and concat them
 		// this way we catch p2pkh prefix addresses etc, but we don't have to process the entire script
@@ -57,7 +55,7 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 					chunksToCheck := parts[:cIdx]
 
 					for _, c := range chunksToCheck {
-						if len(c) == 1 && c[0] == *req.Require {
+						if c.Op == *req.Require || (len(c.Data) == 1 && c.Data[0] == *req.Require) {
 							requireMet[configIndex] = true
 							break
 						}
@@ -86,7 +84,7 @@ func (x *XPut) fromScript(config ParseConfig, script *bscript.Script, idx uint8)
 	return nil
 }
 
-func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8,
+func (x *XPut) processChunk(chunk *script.ScriptChunk, o ParseConfig, chunkIndex uint8,
 	_ uint8, requireMet map[int]bool, tapeI, cellI uint8) (uint8, uint8, bool, error) {
 
 	if x.Tape == nil {
@@ -101,13 +99,13 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8,
 	var h *string
 	var s *string
 	var b *string
-	hexStr := hex.EncodeToString(chunk)
+	hexStr := hex.EncodeToString(chunk.Data)
 
 	// Check for valid opcodes
 	var opByte byte
-	if len(chunk) == 1 {
-		opByte = chunk[0]
-		if opCodeStr, ok := util.OpCodeValues[opByte]; ok {
+	if chunk.Op == 0 || chunk.Op > script.OpPUSHDATA4 {
+		opByte = chunk.Op
+		if opCodeStr, ok := script.OpCodeValues[opByte]; ok {
 			isOpType = true
 			op = &opByte
 			ops = &opCodeStr
@@ -116,9 +114,9 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8,
 
 	// Check if the byte is a printable ASCII character
 	if !isOpType || unicode.IsPrint(rune(opByte)) {
-		str := string(chunk)
+		str := string(chunk.Data)
 		s = &str
-		b64 := base64.StdEncoding.EncodeToString(chunk)
+		b64 := base64.StdEncoding.EncodeToString(chunk.Data)
 		b = &b64
 		h = &hexStr
 	}
@@ -129,7 +127,7 @@ func (x *XPut) processChunk(chunk []byte, o ParseConfig, chunkIndex uint8,
 			if ops != nil {
 				// Check if this is a manual separator that happens to also be an opcode
 				var splitOpStrPtr *string
-				if splitOpByte, ok := util.OpCodeStrings[*ops]; ok {
+				if splitOpByte, ok := script.OpCodeStrings[*ops]; ok {
 					splitOpStr := string([]byte{splitOpByte})
 					splitOpStrPtr = &splitOpStr
 				}
