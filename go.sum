@@ -1,5 +1,5 @@
-github.com/bitcoin-sv/go-sdk v1.1.9 h1:N/LlZUMHNYKjEBuY72c3XSlzUI/q7IN34R0p6J0Qtjc=
-github.com/bitcoin-sv/go-sdk v1.1.9/go.mod h1:NOAkJLbjqKOLuxJmb9ABG86ExTZp4HS8+iygiDIUps4=
+github.com/bitcoin-sv/go-sdk v1.1.10 h1:rGFqFRvZPKGLb+CUF5JmCIxtR3DGNBOG6C3o4W6eZfk=
+github.com/bitcoin-sv/go-sdk v1.1.10/go.mod h1:NOAkJLbjqKOLuxJmb9ABG86ExTZp4HS8+iygiDIUps4=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
