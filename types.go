@@ -1,7 +1,7 @@
 package bpu
 
 import (
-	"github.com/bitcoin-sv/go-sdk/transaction"
+	"github.com/bsv-blockchain/go-sdk/transaction"
 )
 
 // IncludeType is the type of include

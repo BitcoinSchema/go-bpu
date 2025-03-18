@@ -6,9 +6,9 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/bitcoin-sv/go-sdk/script"
-	"github.com/bitcoin-sv/go-sdk/transaction"
 	"github.com/bitcoinschema/go-bpu/test"
+	"github.com/bsv-blockchain/go-sdk/script"
+	"github.com/bsv-blockchain/go-sdk/transaction"
 	"github.com/stretchr/testify/assert"
 )
 
