@@ -82,7 +82,7 @@ func processInputs(inXputs []XPut, geneInputs []*transaction.TransactionInput) (
 			// https://github.com/libsv/go-bt/pull/133
 			// only a problem for input scripts
 
-			parts, err := script.DecodeScript(gInScript)
+			parts, err := script.DecodeScript(gInScript, script.DecodeOptionsParseOpReturn)
 			if err != nil {
 				return nil, err
 			}

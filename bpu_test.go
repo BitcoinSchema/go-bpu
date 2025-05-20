@@ -217,7 +217,7 @@ func TestDecodeParts(t *testing.T) {
 	gene, err := transaction.NewTransactionFromHex(testnetInvalidOpcode)
 	assert.Nil(t, err)
 	scr := gene.Outputs[0].LockingScript
-	parts, err := script.DecodeScript(*scr)
+	parts, err := script.DecodeScript(*scr, script.DecodeOptionsParseOpReturn)
 	assert.Nil(t, err)
 	assert.Equal(t, 999640, len(parts))
 }
