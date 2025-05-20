@@ -17,7 +17,7 @@ func (x *XPut) fromScript(config ParseConfig, scrpt *script.Script, idx uint8) e
 
 	if scrpt != nil {
 
-		parts, err := script.DecodeScript(*scrpt)
+		parts, err := script.DecodeScript(*scrpt, script.DecodeOptionsParseOpReturn)
 		if err != nil {
 			return err
 		}
