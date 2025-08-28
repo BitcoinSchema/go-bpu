@@ -6,7 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/bsv-blockchain/go-sdk v1.1.27
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
