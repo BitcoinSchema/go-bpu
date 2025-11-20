@@ -1,11 +1,9 @@
 module github.com/bitcoinschema/go-bpu
 
-go 1.24.0
-
-toolchain go1.24.1
+go 1.24.3
 
 require (
-	github.com/bsv-blockchain/go-sdk v1.1.27
+	github.com/bsv-blockchain/go-sdk v1.2.12
 	github.com/stretchr/testify v1.11.1
 )
 
