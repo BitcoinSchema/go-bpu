@@ -17,9 +17,9 @@ func (x *XPut) fromScript(config ParseConfig, scrpt *script.Script, idx uint8) e
 
 	if scrpt != nil {
 
-		parts, err := script.DecodeScript(*scrpt)
+		parts, err := script.DecodeScript(*scrpt, script.DecodeOptionsParseOpReturn)
 		if err != nil {
-			return err
+			return nil //nolint:nilerr // intentional: unparseable scripts produce an empty XPut
 		}
 		requireMet := make(map[int]bool)
 		splitterRequirementMet := make(map[int]bool)
